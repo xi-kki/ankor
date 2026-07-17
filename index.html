@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aurai - Always-On Wellness Companion</title>
+    <title>Ankor — Someone's Always Here</title>
     <link rel="stylesheet" href="https://db.onlinewebfonts.com/c/304a6edcec9f8858eeaafc2ac18243f4?family=Askan+Light">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,158 +17,458 @@
                         askan: ['"Askan Light"', 'serif'],
                         inter: ['Inter', 'sans-serif'],
                     },
+                    colors: {
+                        anchor: {
+                            bg: '#0a0a0f',
+                            accent: '#7c6aef',
+                            'accent-glow': 'rgba(124, 106, 239, 0.4)',
+                            warm: '#f59e0b',
+                        }
+                    },
                 },
             },
         }
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; overflow: hidden; }
 
         /* Video focal points */
-        .hero-video {
-            object-position: 80% center;
+        .hero-video { object-position: 80% center; }
+        @media (min-width: 768px) { .hero-video { object-position: right center; } }
+        @media (min-width: 1024px) { .hero-video { object-position: center center; } }
+
+        /* Transitions */
+        .landing-page { transition: opacity 0.8s ease, transform 0.8s ease; }
+        .landing-page.hidden-state { opacity: 0; transform: scale(1.05); pointer-events: none; }
+
+        .app-page { transition: opacity 0.8s ease, transform 0.8s ease; }
+        .app-page.hidden-state { opacity: 0; transform: scale(0.95); pointer-events: none; }
+
+        /* Avatar breathing animation */
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 106, 239, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 40px 20px rgba(124, 106, 239, 0.2); }
         }
-        @media (min-width: 768px) {
-            .hero-video {
-                object-position: right center;
-            }
+        .avatar-breathe { animation: breathe 4s ease-in-out infinite; }
+
+        /* Listening pulse */
+        @keyframes listenPulse {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.3); opacity: 0; }
         }
-        @media (min-width: 1024px) {
-            .hero-video {
-                object-position: center center;
-            }
+        .listen-pulse { animation: listenPulse 2s ease-in-out infinite; }
+
+        /* Audio bars */
+        @keyframes audioBar {
+            0%, 100% { height: 8px; }
+            50% { height: var(--bar-height, 32px); }
         }
+        .audio-bar {
+            animation: audioBar var(--bar-speed, 0.5s) ease-in-out infinite;
+            animation-delay: var(--bar-delay, 0s);
+        }
+
+        /* Typing indicator */
+        @keyframes typingDot {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-4px); opacity: 1; }
+        }
+        .typing-dot { animation: typingDot 1.4s ease-in-out infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        /* Fade in up */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+        .delay-100 { animation-delay: 0.1s; opacity: 0; }
+        .delay-200 { animation-delay: 0.2s; opacity: 0; }
+        .delay-300 { animation-delay: 0.3s; opacity: 0; }
+        .delay-400 { animation-delay: 0.4s; opacity: 0; }
+        .delay-500 { animation-delay: 0.5s; opacity: 0; }
+
+        /* Noise texture */
+        .noise-overlay {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 256px 256px;
+        }
+
+        /* Smooth scroll hide */
+        ::-webkit-scrollbar { display: none; }
+        html { scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-black text-white overflow-x-hidden">
-    <section class="relative w-full h-screen h-[100dvh]">
-        <!-- ==================== VIDEO BACKGROUND ==================== -->
-        <video
-            class="hero-video absolute inset-0 w-full h-full object-cover"
-            autoplay loop muted playsinline
-        >
+<body class="bg-anchor-bg text-white">
+
+    <!-- ==================== LANDING PAGE ==================== -->
+    <div id="landingPage" class="landing-page fixed inset-0 z-50">
+        <!-- Video Background -->
+        <video class="hero-video absolute inset-0 w-full h-full object-cover brightness-[0.35]" autoplay loop muted playsinline>
             <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260618_174853_aac61aa2-0f3f-4cf1-bc78-7f657dd11164.mp4" type="video/mp4">
         </video>
 
-        <!-- ==================== CONTENT LAYER ==================== -->
-        <div class="absolute inset-0 z-10 flex flex-col px-4 sm:px-10 lg:px-12 py-4 sm:py-8">
+        <!-- Overlays -->
+        <div class="absolute inset-0 z-[1] bg-gradient-to-b from-anchor-bg/20 via-transparent to-anchor-bg/80"></div>
+        <div class="absolute inset-0 z-[2] noise-overlay opacity-[0.03] pointer-events-none"></div>
 
-            <!-- ==================== NAVIGATION ==================== -->
+        <!-- Ambient glows -->
+        <div class="absolute -top-[10%] -right-[5%] w-[500px] h-[500px] rounded-full bg-anchor-accent blur-[120px] opacity-20 z-[1] pointer-events-none"></div>
+        <div class="absolute -bottom-[20%] left-[10%] w-[400px] h-[400px] rounded-full bg-amber-500 blur-[100px] opacity-10 z-[1] pointer-events-none"></div>
+
+        <!-- Content -->
+        <div class="relative z-10 h-full flex flex-col px-4 sm:px-10 lg:px-12 py-4 sm:py-8">
+            <!-- Nav -->
             <nav class="flex items-center justify-between">
-                <!-- Left pill (glassmorphism) -->
                 <div class="bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 px-4 py-2.5 sm:px-6 sm:py-4 flex items-center gap-2">
-                    <!-- Pinwheel SVG Logo -->
                     <svg class="w-5 h-5 sm:w-7 sm:h-7 text-white" viewBox="0 0 256 256" fill="currentColor">
                         <path d="M 228 0 C 172.772 0 128 44.772 128 100 L 128 0 L 0 0 L 0 28 C 0 83.228 44.772 128 100 128 L 0 128 L 0 256 L 28 256 C 83.228 256 128 211.228 128 156 L 128 256 L 256 256 L 256 228 C 256 172.772 211.228 128 156 128 L 256 128 L 256 0 Z"/>
                     </svg>
-                    <!-- Brand text -->
-                    <span class="font-askan text-white text-base sm:text-xl tracking-wide">Aurai</span>
+                    <span class="font-askan text-white text-base sm:text-xl tracking-wide">Ankor</span>
                 </div>
-
-                <!-- Right side -->
-                <div class="flex items-center">
-                    <!-- Hamburger menu (mobile) -->
-                    <button id="menuToggle" class="ml-4 sm:ml-32 md:ml-64 lg:ml-96 text-white p-2">
-                        <svg id="menuIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <div class="flex items-center gap-3">
+                    <button class="sm:hidden text-white p-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="3" y1="6" x2="21" y2="6"></line>
                             <line x1="3" y1="12" x2="21" y2="12"></line>
                             <line x1="3" y1="18" x2="21" y2="18"></line>
                         </svg>
-                        <svg id="closeIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
                     </button>
-
-                    <!-- Desktop CTA -->
-                    <button class="hidden sm:block bg-white text-gray-900 font-medium text-sm px-6 py-3 rounded-full ml-4">
-                        Join the list
+                    <button class="hidden sm:block bg-white text-gray-900 font-medium text-sm px-6 py-3 rounded-full">
+                        Sign In
                     </button>
                 </div>
             </nav>
 
-            <!-- ==================== MOBILE MENU ==================== -->
-            <div id="mobileMenu" class="sm:hidden absolute top-[4.5rem] left-4 right-4 bg-black/30 backdrop-blur-xl rounded-2xl p-5 border border-white/10 hidden">
-                <div class="flex flex-col gap-4">
-                    <a href="#" class="text-white text-sm font-medium py-2">Story</a>
-                    <a href="#" class="text-white text-sm font-medium py-2">Benefits</a>
-                    <a href="#" class="text-white text-sm font-medium py-2">Connect</a>
-                    <button class="w-full bg-white text-gray-900 font-medium text-sm px-6 py-3 rounded-full mt-2">
-                        Join the list
-                    </button>
-                </div>
-            </div>
-
-            <!-- ==================== MOBILE SPACER ==================== -->
+            <!-- Spacer -->
             <div class="flex-1 sm:hidden"></div>
 
-            <!-- ==================== MAIN CONTENT ==================== -->
+            <!-- Hero Content -->
             <div class="flex flex-col sm:flex-1 sm:flex-row sm:items-end pb-4 sm:pb-12 lg:pb-16 sm:mt-auto">
-                <!-- Left column -->
                 <div class="flex-1">
-                    <!-- Heading -->
-                    <h1 class="font-askan text-white text-[2rem] sm:text-[3.5rem] md:text-[4.5rem] lg:text-[5.5rem] leading-[1.05] tracking-tight max-w-[700px]">
-                        Your calm is always within.
+                    <!-- Headline — Emotional, founder-focused -->
+                    <h1 class="font-askan text-white text-[2rem] sm:text-[3.5rem] md:text-[4.5rem] lg:text-[5.5rem] leading-[1.05] tracking-tight max-w-[750px]">
+                        It's 2 AM. You're spiraling. <span class="text-white/40">There's no one to call.</span>
                     </h1>
 
-                    <!-- Subtitle -->
+                    <!-- Subtitle — Pain-driven copy -->
                     <p class="text-white/70 text-xs sm:text-base md:text-lg max-w-[520px] leading-relaxed mt-4 sm:mt-6">
-                        Aurai is your always-on wellness companion. Built by leading therapists, it brings you the care and clarity right when you need it.
+                        The panic doesn't wait for business hours. The overwhelm doesn't pause for your therapist's schedule. You need someone <em class="text-white/90 not-italic">right now</em> — not a article, not a meditation app, someone who actually listens.
                     </p>
 
-                    <!-- Email form -->
-                    <form id="emailForm" class="bg-black/30 backdrop-blur-md rounded-full border border-white/10 mt-6 sm:mt-8 max-w-[400px] relative">
-                        <input
-                            type="email"
-                            placeholder="Your email address"
-                            class="w-full bg-transparent text-white placeholder-white/50 px-4 sm:px-6 py-3 sm:py-4 text-sm pr-28 sm:pr-32 rounded-full outline-none"
-                            required
-                        >
-                        <button type="submit" class="absolute right-1.5 top-1/2 -translate-y-1/2 bg-white text-gray-900 text-xs sm:text-sm font-medium px-3 sm:px-6 py-2 sm:py-3 rounded-full">
-                            Join the list
-                        </button>
-                    </form>
+                    <!-- Get Started Button — The main CTA -->
+                    <button onclick="startApp()" class="mt-6 sm:mt-8 group inline-flex items-center gap-3 bg-white text-gray-900 font-medium text-sm sm:text-base px-8 py-4 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)]">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" x2="12" y1="19" y2="22"/>
+                        </svg>
+                        <span>Start Talking</span>
+                        <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 8h10M10 4l4 4-4 4"/>
+                        </svg>
+                    </button>
 
-                    <!-- Feature pills (mobile only) -->
-                    <div class="flex sm:hidden flex-wrap gap-2 mt-3">
-                        <span class="bg-black/30 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10">Smart Therapy</span>
-                        <span class="bg-black/30 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10">Real-time Healing</span>
-                        <span class="bg-black/30 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10">Insights into outcomes</span>
-                    </div>
+                    <!-- Trust line -->
+                    <p class="text-white/30 text-xs mt-4">Free · No signup required · Your words stay private</p>
                 </div>
 
-                <!-- Right column (desktop only) -->
+                <!-- Feature pills (desktop) -->
                 <div class="hidden sm:flex flex-col items-end gap-2 self-end">
-                    <span class="bg-black/30 backdrop-blur-md text-white text-xs sm:text-sm px-4 py-2 rounded-full border border-white/10">Smart Therapy</span>
-                    <span class="bg-black/30 backdrop-blur-md text-white text-xs sm:text-sm px-4 py-2 rounded-full border border-white/10">Real-time Healing</span>
-                    <span class="bg-black/30 backdrop-blur-md text-white text-xs sm:text-sm px-4 py-2 rounded-full border border-white/10">Insights into outcomes</span>
+                    <span class="bg-black/30 backdrop-blur-md text-white text-xs sm:text-sm px-4 py-2 rounded-full border border-white/10">🎙️ Voice-first</span>
+                    <span class="bg-black/30 backdrop-blur-md text-white text-xs sm:text-sm px-4 py-2 rounded-full border border-white/10">🧘 Real-time calm</span>
+                    <span class="bg-black/30 backdrop-blur-md text-white text-xs sm:text-sm px-4 py-2 rounded-full border border-white/10">🧠 Task breakdown</span>
                 </div>
             </div>
 
+            <!-- Feature pills (mobile) -->
+            <div class="flex sm:hidden flex-wrap gap-2 -mt-2 mb-2">
+                <span class="bg-black/30 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10">🎙️ Voice-first</span>
+                <span class="bg-black/30 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10">🧘 Real-time calm</span>
+                <span class="bg-black/30 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10">🧠 Task breakdown</span>
+            </div>
         </div>
-    </section>
+    </div>
+
+    <!-- ==================== APP PAGE ==================== -->
+    <div id="appPage" class="app-page hidden-state fixed inset-0 z-40 bg-anchor-bg flex flex-col items-center justify-center">
+
+        <!-- Minimal ambient background -->
+        <div class="absolute inset-0 pointer-events-none">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-anchor-accent blur-[150px] opacity-10" id="ambientGlow"></div>
+        </div>
+
+        <!-- Top bar -->
+        <div class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6">
+            <div class="flex items-center gap-2 text-white/40 text-sm">
+                <svg class="w-4 h-4" viewBox="0 0 256 256" fill="currentColor">
+                    <path d="M 228 0 C 172.772 0 128 44.772 128 100 L 128 0 L 0 0 L 0 28 C 0 83.228 44.772 128 100 128 L 0 128 L 0 256 L 28 256 C 83.228 256 128 211.228 128 156 L 128 256 L 256 256 L 256 228 C 256 172.772 211.228 128 156 128 L 256 128 L 256 0 Z"/>
+                </svg>
+                <span class="font-askan tracking-wide">Ankor</span>
+            </div>
+            <button class="text-white/40 hover:text-white/70 transition-colors p-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4M12 8h.01"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Main content area -->
+        <div class="relative z-10 flex flex-col items-center justify-center px-6 max-w-lg w-full">
+
+            <!-- Avatar -->
+            <div id="avatar" class="relative mb-8">
+                <!-- Outer pulse rings (when listening) -->
+                <div id="pulseRing1" class="absolute inset-0 rounded-full border border-anchor-accent/30 opacity-0 transition-opacity duration-500"></div>
+                <div id="pulseRing2" class="absolute -inset-4 rounded-full border border-anchor-accent/20 opacity-0 transition-opacity duration-500"></div>
+                <div id="pulseRing3" class="absolute -inset-8 rounded-full border border-anchor-accent/10 opacity-0 transition-opacity duration-500"></div>
+
+                <!-- Avatar circle -->
+                <div id="avatarCircle" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-anchor-accent/20 to-anchor-accent/5 border border-anchor-accent/30 flex items-center justify-center avatar-breathe cursor-pointer transition-all duration-500" onclick="toggleListening()">
+                    <!-- Inner icon -->
+                    <svg id="avatarIcon" class="w-10 h-10 sm:w-14 sm:h-14 text-anchor-accent/80 transition-all duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" x2="12" y1="19" y2="22"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Status text -->
+            <p id="statusText" class="text-white/50 text-sm sm:text-base mb-6 text-center transition-all duration-300">
+                Tap to start talking
+            </p>
+
+            <!-- Audio visualization bars -->
+            <div id="audioBars" class="flex items-end gap-1 h-12 mb-8 opacity-0 transition-opacity duration-300">
+                <div class="audio-bar w-1 bg-anchor-accent/60 rounded-full" style="--bar-height: 20px; --bar-speed: 0.4s; --bar-delay: 0s;"></div>
+                <div class="audio-bar w-1 bg-anchor-accent/70 rounded-full" style="--bar-height: 32px; --bar-speed: 0.5s; --bar-delay: 0.1s;"></div>
+                <div class="audio-bar w-1 bg-anchor-accent/80 rounded-full" style="--bar-height: 24px; --bar-speed: 0.35s; --bar-delay: 0.15s;"></div>
+                <div class="audio-bar w-1 bg-anchor-accent rounded-full" style="--bar-height: 40px; --bar-speed: 0.45s; --bar-delay: 0.05s;"></div>
+                <div class="audio-bar w-1 bg-anchor-accent/90 rounded-full" style="--bar-height: 28px; --bar-speed: 0.55s; --bar-delay: 0.2s;"></div>
+                <div class="audio-bar w-1 bg-anchor-accent/70 rounded-full" style="--bar-height: 36px; --bar-speed: 0.4s; --bar-delay: 0.12s;"></div>
+                <div class="audio-bar w-1 bg-anchor-accent/60 rounded-full" style="--bar-height: 18px; --bar-speed: 0.5s; --bar-delay: 0.08s;"></div>
+                <div class="audio-bar w-1 bg-anchor-accent/50 rounded-full" style="--bar-height: 26px; --bar-speed: 0.38s; --bar-delay: 0.18s;"></div>
+                <div class="audio-bar w-1 bg-anchor-accent/40 rounded-full" style="--bar-height: 16px; --bar-speed: 0.48s; --bar-delay: 0.22s;"></div>
+            </div>
+
+            <!-- Message area -->
+            <div id="messageArea" class="w-full min-h-[80px] flex flex-col items-center justify-center">
+                <!-- Typing indicator (hidden by default) -->
+                <div id="typingIndicator" class="hidden flex items-center gap-2 text-white/40">
+                    <div class="typing-dot w-2 h-2 rounded-full bg-anchor-accent/60"></div>
+                    <div class="typing-dot w-2 h-2 rounded-full bg-anchor-accent/60"></div>
+                    <div class="typing-dot w-2 h-2 rounded-full bg-anchor-accent/60"></div>
+                </div>
+
+                <!-- AI Response (hidden by default) -->
+                <div id="aiResponse" class="hidden text-center">
+                    <p id="aiResponseText" class="text-white/80 text-base sm:text-lg leading-relaxed"></p>
+                </div>
+            </div>
+
+            <!-- Quick actions -->
+            <div id="quickActions" class="flex flex-wrap justify-center gap-2 mt-8">
+                <button onclick="simulateResponse('overwhelm')" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs sm:text-sm px-4 py-2.5 rounded-full transition-all duration-200">
+                    😰 I'm overwhelmed
+                </button>
+                <button onclick="simulateResponse('anxiety')" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs sm:text-sm px-4 py-2.5 rounded-full transition-all duration-200">
+                    😤 I can't focus
+                </button>
+                <button onclick="simulateResponse('calm')" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs sm:text-sm px-4 py-2.5 rounded-full transition-all duration-200">
+                    🧘 Just need to breathe
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom hint -->
+        <div class="absolute bottom-6 sm:bottom-8 left-0 right-0 text-center">
+            <p class="text-white/20 text-xs">Ankor is an AI companion, not a therapist. In crisis? Call 988.</p>
+        </div>
+    </div>
 
     <script>
-        // Mobile menu toggle
-        const menuToggle = document.getElementById('menuToggle');
-        const mobileMenu = document.getElementById('mobileMenu');
-        const menuIcon = document.getElementById('menuIcon');
-        const closeIcon = document.getElementById('closeIcon');
+        // ==================== STATE ====================
+        let isListening = false;
+        let appStarted = false;
 
-        menuToggle.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-            menuIcon.classList.toggle('hidden');
-            closeIcon.classList.toggle('hidden');
-        });
+        // ==================== LANDING → APP TRANSITION ====================
+        function startApp() {
+            const landing = document.getElementById('landingPage');
+            const app = document.getElementById('appPage');
 
-        // Email form submit
-        const emailForm = document.getElementById('emailForm');
-        emailForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = emailForm.querySelector('input[type="email"]').value;
-            alert(email);
-        });
+            landing.classList.add('hidden-state');
+            setTimeout(() => {
+                app.classList.remove('hidden-state');
+                appStarted = true;
+            }, 400);
+        }
+
+        // ==================== LISTENING TOGGLE ====================
+        function toggleListening() {
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            isListening = true;
+            const avatar = document.getElementById('avatarCircle');
+            const statusText = document.getElementById('statusText');
+            const audioBars = document.getElementById('audioBars');
+            const pulseRings = [document.getElementById('pulseRing1'), document.getElementById('pulseRing2'), document.getElementById('pulseRing3')];
+            const ambientGlow = document.getElementById('ambientGlow');
+
+            avatar.classList.remove('avatar-breathe');
+            avatar.style.transform = 'scale(1.1)';
+            avatar.style.boxShadow = '0 0 60px 30px rgba(124, 106, 239, 0.3)';
+            avatar.style.borderColor = 'rgba(124, 106, 239, 0.6)';
+
+            statusText.textContent = 'Listening...';
+            statusText.style.color = 'rgba(255, 255, 255, 0.7)';
+
+            audioBars.style.opacity = '1';
+
+            pulseRings.forEach((ring, i) => {
+                setTimeout(() => {
+                    ring.style.opacity = '1';
+                    ring.classList.add('listen-pulse');
+                }, i * 200);
+            });
+
+            ambientGlow.style.opacity = '0.2';
+            ambientGlow.style.transition = 'opacity 1s ease';
+
+            // Simulate auto-stop after 5 seconds
+            setTimeout(() => {
+                if (isListening) {
+                    stopListening();
+                    simulateResponse('overwhelm');
+                }
+            }, 5000);
+        }
+
+        function stopListening() {
+            isListening = false;
+            const avatar = document.getElementById('avatarCircle');
+            const statusText = document.getElementById('statusText');
+            const audioBars = document.getElementById('audioBars');
+            const pulseRings = [document.getElementById('pulseRing1'), document.getElementById('pulseRing2'), document.getElementById('pulseRing3')];
+            const ambientGlow = document.getElementById('ambientGlow');
+
+            avatar.style.transform = 'scale(1)';
+            avatar.style.boxShadow = '0 0 0 0 rgba(124, 106, 239, 0)';
+            avatar.style.borderColor = 'rgba(124, 106, 239, 0.3)';
+
+            audioBars.style.opacity = '0';
+
+            pulseRings.forEach(ring => {
+                ring.style.opacity = '0';
+                ring.classList.remove('listen-pulse');
+            });
+
+            ambientGlow.style.opacity = '0.1';
+
+            // Show typing indicator
+            statusText.textContent = '';
+            showTyping();
+        }
+
+        // ==================== AI RESPONSES ====================
+        const responses = {
+            overwhelm: [
+                "I hear you. Let's pause right here.",
+                "That weight you're feeling? We're going to break it down together.",
+                "First — just one breath with me. In... and out.",
+                "Now, tell me: what's the one thing pulling at you most right now?",
+                "We're going to take that big, scary thing and make it small. Just one tiny step. What would that be?"
+            ],
+            anxiety: [
+                "I'm here. You're safe.",
+                "Let's ground you first. Can you feel your feet on the floor?",
+                "Name 3 things you can see right now. Take your time.",
+                "Good. Now — that thing you need to do? Let's make it so small it feels almost silly.",
+                "What's the very first micro-step? Not the whole task — just the first 30 seconds of it."
+            ],
+            calm: [
+                "Let's breathe together.",
+                "Inhale for 4 counts... 1... 2... 3... 4...",
+                "Hold for 7... 1... 2... 3... 4... 5... 6... 7...",
+                "Now exhale slowly for 8... 1... 2... 3... 4... 5... 6... 7... 8...",
+                "How do you feel? We can do another round, or just sit here for a moment."
+            ]
+        };
+
+        function simulateResponse(type) {
+            const msgs = responses[type];
+            let i = 0;
+
+            function showNext() {
+                if (i < msgs.length) {
+                    showAIResponse(msgs[i]);
+                    i++;
+                    setTimeout(showNext, 4000);
+                } else {
+                    // Done — show typing then reset
+                    setTimeout(() => {
+                        hideAIResponse();
+                        document.getElementById('statusText').textContent = 'Tap to continue';
+                    }, 3000);
+                }
+            }
+
+            showNext();
+        }
+
+        function showTyping() {
+            const typing = document.getElementById('typingIndicator');
+            const aiResponse = document.getElementById('aiResponse');
+            typing.classList.remove('hidden');
+            aiResponse.classList.add('hidden');
+
+            setTimeout(() => {
+                typing.classList.add('hidden');
+            }, 1500);
+        }
+
+        function showAIResponse(text) {
+            const typing = document.getElementById('typingIndicator');
+            const aiResponse = document.getElementById('aiResponse');
+            const aiText = document.getElementById('aiResponseText');
+            const statusText = document.getElementById('statusText');
+
+            typing.classList.add('hidden');
+            aiResponse.classList.remove('hidden');
+            aiText.textContent = text;
+            aiText.style.opacity = '0';
+            aiText.style.transform = 'translateY(10px)';
+
+            requestAnimationFrame(() => {
+                aiText.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                aiText.style.opacity = '1';
+                aiText.style.transform = 'translateY(0)';
+            });
+
+            statusText.textContent = '';
+        }
+
+        function hideAIResponse() {
+            const aiResponse = document.getElementById('aiResponse');
+            const aiText = document.getElementById('aiResponseText');
+
+            aiText.style.opacity = '0';
+            aiText.style.transform = 'translateY(-10px)';
+
+            setTimeout(() => {
+                aiResponse.classList.add('hidden');
+            }, 500);
+        }
     </script>
 </body>
 </html>
