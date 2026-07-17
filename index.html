@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurai - Always-On Wellness Companion</title>
+    <link rel="stylesheet" href="https://db.onlinewebfonts.com/c/304a6edcec9f8858eeaafc2ac18243f4?family=Askan+Light">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        askan: ['"Askan Light"', 'serif'],
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+        /* Video focal points */
+        .hero-video {
+            object-position: 80% center;
+        }
+        @media (min-width: 768px) {
+            .hero-video {
+                object-position: right center;
+            }
+        }
+        @media (min-width: 1024px) {
+            .hero-video {
+                object-position: center center;
+            }
+        }
+    </style>
+</head>
+<body class="bg-black text-white overflow-x-hidden">
+    <section class="relative w-full h-screen h-[100dvh]">
+        <!-- ==================== VIDEO BACKGROUND ==================== -->
+        <video
+            class="hero-video absolute inset-0 w-full h-full object-cover"
+            autoplay loop muted playsinline
+        >
+            <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260618_174853_aac61aa2-0f3f-4cf1-bc78-7f657dd11164.mp4" type="video/mp4">
+        </video>
+
+        <!-- ==================== CONTENT LAYER ==================== -->
+        <div class="absolute inset-0 z-10 flex flex-col px-4 sm:px-10 lg:px-12 py-4 sm:py-8">
+
+            <!-- ==================== NAVIGATION ==================== -->
+            <nav class="flex items-center justify-between">
+                <!-- Left pill (glassmorphism) -->
+                <div class="bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 px-4 py-2.5 sm:px-6 sm:py-4 flex items-center gap-2">
+                    <!-- Pinwheel SVG Logo -->
+                    <svg class="w-5 h-5 sm:w-7 sm:h-7 text-white" viewBox="0 0 256 256" fill="currentColor">
+                        <path d="M 228 0 C 172.772 0 128 44.772 128 100 L 128 0 L 0 0 L 0 28 C 0 83.228 44.772 128 100 128 L 0 128 L 0 256 L 28 256 C 83.228 256 128 211.228 128 156 L 128 256 L 256 256 L 256 228 C 256 172.772 211.228 128 156 128 L 256 128 L 256 0 Z"/>
+                    </svg>
+                    <!-- Brand text -->
+                    <span class="font-askan text-white text-base sm:text-xl tracking-wide">Aurai</span>
+                </div>
+
+                <!-- Right side -->
+                <div class="flex items-center">
+                    <!-- Hamburger menu (mobile) -->
+                    <button id="menuToggle" class="ml-4 sm:ml-32 md:ml-64 lg:ml-96 text-white p-2">
+                        <svg id="menuIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                        <svg id="closeIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+
+                    <!-- Desktop CTA -->
+                    <button class="hidden sm:block bg-white text-gray-900 font-medium text-sm px-6 py-3 rounded-full ml-4">
+                        Join the list
+                    </button>
+                </div>
+            </nav>
+
+            <!-- ==================== MOBILE MENU ==================== -->
+            <div id="mobileMenu" class="sm:hidden absolute top-[4.5rem] left-4 right-4 bg-black/30 backdrop-blur-xl rounded-2xl p-5 border border-white/10 hidden">
+                <div class="flex flex-col gap-4">
+                    <a href="#" class="text-white text-sm font-medium py-2">Story</a>
+                    <a href="#" class="text-white text-sm font-medium py-2">Benefits</a>
+                    <a href="#" class="text-white text-sm font-medium py-2">Connect</a>
+                    <button class="w-full bg-white text-gray-900 font-medium text-sm px-6 py-3 rounded-full mt-2">
+                        Join the list
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==================== MOBILE SPACER ==================== -->
+            <div class="flex-1 sm:hidden"></div>
+
+            <!-- ==================== MAIN CONTENT ==================== -->
+            <div class="flex flex-col sm:flex-1 sm:flex-row sm:items-end pb-4 sm:pb-12 lg:pb-16 sm:mt-auto">
+                <!-- Left column -->
+                <div class="flex-1">
+                    <!-- Heading -->
+                    <h1 class="font-askan text-white text-[2rem] sm:text-[3.5rem] md:text-[4.5rem] lg:text-[5.5rem] leading-[1.05] tracking-tight max-w-[700px]">
+                        Your calm is always within.
+                    </h1>
+
+                    <!-- Subtitle -->
+                    <p class="text-white/70 text-xs sm:text-base md:text-lg max-w-[520px] leading-relaxed mt-4 sm:mt-6">
+                        Aurai is your always-on wellness companion. Built by leading therapists, it brings you the care and clarity right when you need it.
+                    </p>
+
+                    <!-- Email form -->
+                    <form id="emailForm" class="bg-black/30 backdrop-blur-md rounded-full border border-white/10 mt-6 sm:mt-8 max-w-[400px] relative">
+                        <input
+                            type="email"
+                            placeholder="Your email address"
+                            class="w-full bg-transparent text-white placeholder-white/50 px-4 sm:px-6 py-3 sm:py-4 text-sm pr-28 sm:pr-32 rounded-full outline-none"
+                            required
+                        >
+                        <button type="submit" class="absolute right-1.5 top-1/2 -translate-y-1/2 bg-white text-gray-900 text-xs sm:text-sm font-medium px-3 sm:px-6 py-2 sm:py-3 rounded-full">
+                            Join the list
+                        </button>
+                    </form>
+
+                    <!-- Feature pills (mobile only) -->
+                    <div class="flex sm:hidden flex-wrap gap-2 mt-3">
+                        <span class="bg-black/30 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10">Smart Therapy</span>
+                        <span class="bg-black/30 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10">Real-time Healing</span>
+                        <span class="bg-black/30 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10">Insights into outcomes</span>
+                    </div>
+                </div>
+
+                <!-- Right column (desktop only) -->
+                <div class="hidden sm:flex flex-col items-end gap-2 self-end">
+                    <span class="bg-black/30 backdrop-blur-md text-white text-xs sm:text-sm px-4 py-2 rounded-full border border-white/10">Smart Therapy</span>
+                    <span class="bg-black/30 backdrop-blur-md text-white text-xs sm:text-sm px-4 py-2 rounded-full border border-white/10">Real-time Healing</span>
+                    <span class="bg-black/30 backdrop-blur-md text-white text-xs sm:text-sm px-4 py-2 rounded-full border border-white/10">Insights into outcomes</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const menuIcon = document.getElementById('menuIcon');
+        const closeIcon = document.getElementById('closeIcon');
+
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+        });
+
+        // Email form submit
+        const emailForm = document.getElementById('emailForm');
+        emailForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = emailForm.querySelector('input[type="email"]').value;
+            alert(email);
+        });
+    </script>
+</body>
+</html>
