@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ankor — Someone's Always Here</title>
+    <title>Ankore — Someone's Always Here</title>
     <link rel="stylesheet" href="https://db.onlinewebfonts.com/c/304a6edcec9f8858eeaafc2ac18243f4?family=Askan+Light">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -167,7 +167,7 @@
                     <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center">
                         <i data-lucide="anchor" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
                     </div>
-                    <span class="font-askan text-white text-xl sm:text-2xl tracking-wide">Ankor</span>
+                    <span class="font-askan text-white text-xl sm:text-2xl tracking-wide">Ankore</span>
                 </div>
                 <button class="sm:hidden text-white p-2">
                     <i data-lucide="menu" class="w-6 h-6"></i>
@@ -182,7 +182,7 @@
                     </h1>
                     <p class="text-white/50 text-sm sm:text-lg max-w-[400px] leading-relaxed mt-4 sm:mt-6 fade-in delay-3">
                         When the panic hits at 2 AM. When you can't move. When no one's around.
-                        <span class="text-white font-medium">Ankor is.</span>
+                        <span class="text-white font-medium">Ankore is.</span>
                     </p>
                     <button onclick="startApp()" class="mt-6 sm:mt-8 group inline-flex items-center gap-3 bg-white text-anchor-bg font-semibold text-sm sm:text-base px-8 py-4 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] fade-in delay-4">
                         <i data-lucide="mic" class="w-5 h-5"></i>
@@ -242,7 +242,7 @@
                 <div class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
                     <i data-lucide="anchor" class="w-4 h-4 text-white/40"></i>
                 </div>
-                <span class="font-askan text-white/40 text-sm tracking-wide">Ankor</span>
+                <span class="font-askan text-white/40 text-sm tracking-wide">Ankore</span>
             </div>
             <div class="flex items-center gap-3">
                 <div class="flex items-center gap-1.5 bg-white/5 text-white/30 text-xs px-3 py-1.5 rounded-full border border-white/5">
@@ -669,7 +669,20 @@
         const REDIRECT_URI = window.location.origin;
         // Client ID fetched from server (not hardcoded)
         let CLIENT_ID = '';
-        fetch('/api/config').then(r => r.json()).then(d => CLIENT_ID = d.clientId);
+        let configLoaded = false;
+        
+        fetch('/api/config')
+            .then(r => r.json())
+            .then(d => {
+                CLIENT_ID = d.clientId;
+                configLoaded = true;
+                console.log('Config loaded:', CLIENT_ID ? '✓' : '✗');
+            })
+            .catch(err => {
+                console.error('Config load failed:', err);
+                // Fallback: try to get from window
+                configLoaded = false;
+            });
 
         // ===== CONNECT MODAL =====
         function showConnectModal() {
@@ -698,23 +711,29 @@
             btn.innerHTML = '<span class="animate-pulse">Connecting...</span>';
             
             try {
-                const { Ed25519Keypair } = await import('https://esm.sh/@mysten/sui.js/keypairs/ed25519');
-                const keypair = new Ed25519Keypair();
-                const address = keypair.getPublicKey().toSuiAddress();
+                // Wait for config to load if not ready
+                if (!configLoaded || !CLIENT_ID) {
+                    const response = await fetch('/api/config');
+                    const config = await response.json();
+                    CLIENT_ID = config.clientId;
+                }
                 
-                sessionStorage.setItem('ankor_ephemeral_key', keypair.getSecretKey());
-                sessionStorage.setItem('ankor_address', address);
+                if (!CLIENT_ID) {
+                    throw new Error('Client ID not configured');
+                }
+                
+                // Use backend callback as redirect URI
+                const redirectUri = window.location.origin + '/api/auth/callback';
                 
                 const params = new URLSearchParams({
                     client_id: CLIENT_ID,
-                    redirect_uri: REDIRECT_URI,
+                    redirect_uri: redirectUri,
                     scope: 'openid email profile',
-                    response_type: 'id_token',
-                    nonce: address,
-                    state: address,
+                    response_type: 'code',
                     prompt: 'select_account'
                 });
 
+                console.log('Redirecting to Google with:', { clientId: CLIENT_ID.substring(0, 20) + '...', redirectUri });
                 window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
             } catch (error) {
                 console.error('Google connect error:', error);

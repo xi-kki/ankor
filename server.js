@@ -100,6 +100,43 @@ app.get('/api/config', (req, res) => {
     });
 });
 
+// OAuth callback handler - exchanges code for tokens
+app.get('/api/auth/callback', async (req, res) => {
+    try {
+        const { code, state } = req.query;
+        
+        if (!code) {
+            return res.redirect('/?error=no_code');
+        }
+        
+        // Exchange code for tokens
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code,
+                client_id: GOOGLE_CLIENT_ID,
+                client_secret: process.env.GOOGLE_CLIENT_SECRET,
+                redirect_uri: `${req.protocol}://${req.get('host')}`,
+                grant_type: 'authorization_code'
+            })
+        });
+        
+        const tokens = await tokenResponse.json();
+        
+        if (tokens.id_token) {
+            // Redirect back to frontend with the token
+            res.redirect(`/?id_token=${tokens.id_token}&state=${state || ''}`);
+        } else {
+            console.error('Token exchange failed:', tokens);
+            res.redirect('/?error=token_exchange_failed');
+        }
+    } catch (error) {
+        console.error('Callback error:', error);
+        res.redirect('/?error=callback_failed');
+    }
+});
+
 // ===== ZKLOGIN AUTH =====
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const crypto = require('crypto');
@@ -185,7 +222,7 @@ app.post('/api/chat', express.json(), async (req, res) => {
                 messages: [
                     {
                         role: 'system',
-                        content: `You are Ankor, a calm, warm AI wellness companion. Keep responses SHORT (1-3 sentences). Warm, steady tone. Guide through breathing when overwhelmed. Help break tasks when unfocused. Never diagnose. Validate feelings first. Crisis? Say: "Please call 988."`
+                        content: `You are Ankore, a calm, warm AI wellness companion. Keep responses SHORT (1-3 sentences). Warm, steady tone. Guide through breathing when overwhelmed. Help break tasks when unfocused. Never diagnose. Validate feelings first. Crisis? Say: "Please call 988."`
                     },
                     ...messages
                 ],
@@ -298,7 +335,7 @@ async function getAIResponse(userMessage) {
                 messages: [
                     {
                         role: 'system',
-                        content: `You are Ankor, a calm, warm AI wellness companion. Keep responses SHORT (1-3 sentences). Warm, steady tone. Guide through breathing when overwhelmed. Help break tasks when unfocused. Never diagnose. Validate feelings first. For breathing, pace words: "In... 2... 3... 4..." Crisis? Say: "Please call 988."`
+                        content: `You are Ankore, a calm, warm AI wellness companion. Keep responses SHORT (1-3 sentences). Warm, steady tone. Guide through breathing when overwhelmed. Help break tasks when unfocused. Never diagnose. Validate feelings first. For breathing, pace words: "In... 2... 3... 4..." Crisis? Say: "Please call 988."`
                     },
                     { role: 'user', content: userMessage }
                 ],
@@ -347,5 +384,5 @@ async function getTTS(text) {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-    console.log(`\n🎧 Ankor server running at http://localhost:${PORT}\n`);
+    console.log(`\n🎧 Ankore server running at http://localhost:${PORT}\n`);
 });
