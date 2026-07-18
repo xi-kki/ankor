@@ -1,4 +1,4 @@
-# Ankor — Someone's Always Here
+# Ankore — Someone's Always Here
 
 A voice-first AI wellness companion that's always available when you need someone to talk to.
 
@@ -7,19 +7,24 @@ A voice-first AI wellness companion that's always available when you need someon
 - 🧠 AI responses powered by Groq (Llama 3.3)
 - 🔊 Natural voice output via ElevenLabs TTS
 - 🌊 Calming animations and breathing exercises
-- 🔒 Private & secure — no signup required
+- 🔒 Private & secure — encrypted on-chain with Sui
+- 🔐 zkLogin authentication (sign in with Google)
 
 ## Tech Stack
 - **Frontend:** HTML, Tailwind CSS, Lucide Icons
 - **Backend:** Node.js, Express, WebSocket
 - **AI:** Groq (LLM), Deepgram (STT), ElevenLabs (TTS)
+- **Auth:** Sui zkLogin (Google OAuth)
+- **Hosting:** Vercel
 
-## Deploy to Sevalla
+## Deploy to Vercel
 
 1. Push to GitHub
-2. Go to [Sevalla](https://sevalla.com)
-3. Connect your GitHub repo
+2. Go to [Vercel](https://vercel.com)
+3. Import your GitHub repo
 4. Add environment variables:
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
    - `GROQ_API_KEY`
    - `DEEPGRAM_API_KEY`
    - `ELEVENLABS_API_KEY`
