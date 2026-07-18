@@ -31,6 +31,11 @@ const wss = new WebSocketServer({ server });
 // Serve static files
 app.use(express.static(__dirname));
 
+// Serve index.html for root
+app.get('/', (req, res) => {
+    res.sendFile(join(__dirname, 'index.html'));
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({
