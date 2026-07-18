@@ -1,15 +1,18 @@
 const express = require('express');
 const { createServer } = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
-const { readFileSync } = require('fs');
+const { readFileSync, existsSync } = require('fs');
 const { join } = require('path');
 
-// Load env vars
-const envContent = readFileSync(join(__dirname, '.env'), 'utf8');
-envContent.split('\n').forEach(line => {
-    const [key, ...value] = line.split('=');
-    if (key && value.length) process.env[key.trim()] = value.join('=').trim();
-});
+// Load env vars from .env file (local dev only — Vercel uses dashboard env vars)
+const envPath = join(__dirname, '.env');
+if (existsSync(envPath)) {
+    const envContent = readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+        const [key, ...value] = line.split('=');
+        if (key && value.length) process.env[key.trim()] = value.join('=').trim();
+    });
+}
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
