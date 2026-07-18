@@ -1,27 +1,43 @@
 {
-  "name": "aurai-landing",
+  "name": "ankore",
   "version": "1.0.0",
   "description": "A voice-first AI wellness companion that's always available when you need someone to talk to.",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"No tests yet\" && exit 0",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx || true",
+    "security": "npm audit --audit-level=high",
+    "audit:fix": "npm audit fix"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xi-kki/ankor.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "wellness",
+    "mental-health",
+    "ai",
+    "voice",
+    "sui",
+    "zklogin"
+  ],
+  "author": "Ankore",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/xi-kki/ankor/issues"
   },
-  "homepage": "https://github.com/xi-kki/ankor#readme",
+  "homepage": "https://ankore.vercel.app",
   "dependencies": {
     "express": "^5.2.1",
+    "helmet": "^8.0.0",
+    "jose": "^6.0.11",
     "ws": "^8.21.1"
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

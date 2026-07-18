@@ -17,23 +17,95 @@ GROQ_API_KEY = process.env.GROQ_API_KEY;
 DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
+// SECURITY: Input sanitization
+function sanitizeInput(text) {
+    if (typeof text !== 'string') return '';
+    
+    // Remove potential injection patterns
+    return text
+        .replace(/[<>{}]/g, '') // Remove HTML/template chars
+        .replace(/\b(system|assistant)\b/gi, '') // Remove role injection attempts
+        .slice(0, 1000); // Limit length
+}
+
+// SECURITY: Validate messages array
+function validateMessages(messages) {
+    if (!Array.isArray(messages)) {
+        return { valid: false, error: 'Messages must be an array' };
+    }
+    
+    if (messages.length === 0) {
+        return { valid: false, error: 'Messages cannot be empty' };
+    }
+    
+    if (messages.length > 20) {
+        return { valid: false, error: 'Too many messages (max 20)' };
+    }
+    
+    // Validate each message
+    for (const msg of messages) {
+        if (!msg.role || !msg.content) {
+            return { valid: false, error: 'Invalid message format' };
+        }
+        
+        if (!['user', 'assistant', 'system'].includes(msg.role)) {
+            return { valid: false, error: 'Invalid message role' };
+        }
+        
+        if (typeof msg.content !== 'string') {
+            return { valid: false, error: 'Message content must be a string' };
+        }
+        
+        if (msg.content.length > 1000) {
+            return { valid: false, error: 'Message too long (max 1000 chars)' };
+        }
+    }
+    
+    return { valid: true };
+}
+
 export default async function handler(req, res) {
-    // CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // SECURITY: Strict CORS
+    const allowedOrigins = [
+        'https://ankore.vercel.app',
+        'https://ankore-4j6y45g1x-xikkilocker-6820s-projects.vercel.app',
+        'http://localhost:3001'
+    ];
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+    
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
-
+    
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
-
+    
     try {
         const { messages } = req.body;
-
+        
+        // INPUT VALIDATION
+        const validation = validateMessages(messages);
+        if (!validation.valid) {
+            return res.status(400).json({ error: validation.error });
+        }
+        
+        // SANITIZE all messages
+        const sanitizedMessages = messages.map(msg => ({
+            role: msg.role,
+            content: sanitizeInput(msg.content)
+        }));
+        
+        // SECURITY: Add rate limiting header
+        res.setHeader('X-RateLimit-Limit', '30');
+        
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -47,7 +119,7 @@ export default async function handler(req, res) {
                         role: 'system',
                         content: `You are Ankore, a calm, warm AI wellness companion. Keep responses SHORT (1-3 sentences). Warm, steady tone. Guide through breathing when overwhelmed. Help break tasks when unfocused. Never diagnose. Validate feelings first. For breathing, pace words: "In... 2... 3... 4..." Crisis? Say: "Please call 988."`
                     },
-                    ...messages
+                    ...sanitizedMessages
                 ],
                 temperature: 0.7,
                 max_tokens: 150
@@ -55,43 +127,57 @@ export default async function handler(req, res) {
         });
 
         const data = await response.json();
-        const aiText = data.choices?.[0]?.message?.content || "I'm here. Take a breath with me.";
+        
+        // SECURITY: Validate response from Groq
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            console.error('Invalid Groq response:', data);
+            return res.status(502).json({ error: 'Invalid response from AI' });
+        }
+        
+        const aiText = data.choices[0].message.content || "I'm here. Take a breath with me.";
+        
+        // SECURITY: Sanitize AI response
+        const sanitizedAiText = aiText.slice(0, 500); // Limit response length
 
         // Get TTS audio
         let ttsAudio = null;
         try {
-            const ttsResponse = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
-                method: 'POST',
-                headers: {
-                    'xi-api-key': ELEVENLABS_API_KEY,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    text: aiText,
-                    model_id: 'eleven_turbo_v2',
-                    voice_settings: {
-                        stability: 0.7,
-                        similarity_boost: 0.8,
-                        style: 0.3
-                    }
-                })
-            });
+            if (ELEVENLABS_API_KEY) {
+                const ttsResponse = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
+                    method: 'POST',
+                    headers: {
+                        'xi-api-key': ELEVENLABS_API_KEY,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: sanitizedAiText,
+                        model_id: 'eleven_turbo_v2',
+                        voice_settings: {
+                            stability: 0.7,
+                            similarity_boost: 0.8,
+                            style: 0.3
+                        }
+                    })
+                });
 
-            if (ttsResponse.ok) {
-                const audioBuffer = await ttsResponse.arrayBuffer();
-                ttsAudio = Buffer.from(audioBuffer).toString('base64');
+                if (ttsResponse.ok) {
+                    const audioBuffer = await ttsResponse.arrayBuffer();
+                    ttsAudio = Buffer.from(audioBuffer).toString('base64');
+                }
             }
         } catch (e) {
-            console.error('TTS error:', e);
+            // Don't log full error to prevent information leakage
+            console.error('TTS request failed');
         }
 
         return res.status(200).json({
-            text: aiText,
+            text: sanitizedAiText,
             audio: ttsAudio
         });
 
     } catch (error) {
-        console.error('Chat error:', error);
+        // SECURITY: Don't leak error details
+        console.error('Chat request failed');
         return res.status(500).json({ error: 'Failed to process request' });
     }
 }

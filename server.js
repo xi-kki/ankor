@@ -3,6 +3,8 @@ const { createServer } = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const { readFileSync, existsSync } = require('fs');
 const { join } = require('path');
+const helmet = require('helmet');
+const { rateLimit, validateRequest } = require('./api/middleware');
 
 // Load env vars from .env file (local dev only — Vercel uses dashboard env vars)
 const envPath = join(__dirname, '.env');
@@ -18,62 +20,48 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
-console.log('API Keys loaded:', {
-    groq: GROQ_API_KEY ? '✓' : '✗',
-    deepgram: DEEPGRAM_API_KEY ? '✓' : '✗',
-    elevenlabs: ELEVENLABS_API_KEY ? '✓' : '✗'
-});
+// SECURITY: Only log in development
+if (process.env.NODE_ENV !== 'production') {
+    console.log('API Keys loaded:', {
+        groq: !!GROQ_API_KEY,
+        deepgram: !!DEEPGRAM_API_KEY,
+        elevenlabs: !!ELEVENLABS_API_KEY
+    });
+}
 
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
-// ===== SECURITY HEADERS =====
-app.use((req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' https:;");
-    next();
-});
+// ===== SECURITY: Helmet =====
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com", "https://cdn.tailwindcss.com", "https://esm.sh"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            mediaSrc: ["'self'", "https:"],
+            connectSrc: ["'self'", "https://api.groq.com", "https://api.deepgram.com", "https://api.elevenlabs.io"],
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"]
+        }
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
-// ===== RATE LIMITING =====
-const rateLimit = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const RATE_LIMIT_MAX = 30; // requests per window
+// ===== SECURITY: Request Validation =====
+app.use(validateRequest);
 
-app.use('/api/', (req, res, next) => {
-    const ip = req.ip;
-    const now = Date.now();
-    
-    if (!rateLimit.has(ip)) {
-        rateLimit.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-        return next();
-    }
-    
-    const limit = rateLimit.get(ip);
-    if (now > limit.resetAt) {
-        limit.count = 1;
-        limit.resetAt = now + RATE_LIMIT_WINDOW;
-        return next();
-    }
-    
-    limit.count++;
-    if (limit.count > RATE_LIMIT_MAX) {
-        return res.status(429).json({ error: 'Too many requests' });
-    }
-    next();
-});
+// ===== SECURITY: Rate Limiting =====
+app.use('/api/', rateLimit);
 
-// Clean up old rate limits every 5 minutes
-setInterval(() => {
-    const now = Date.now();
-    for (const [ip, limit] of rateLimit) {
-        if (now > limit.resetAt) rateLimit.delete(ip);
-    }
-}, 300000);
+// ===== SECURITY: Body Parser with Limits =====
+app.use(express.json({ limit: '10kb' }));
 
 // Serve static files
 app.use(express.static(__dirname));
@@ -86,74 +74,22 @@ app.get('/', (req, res) => {
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({
-        groq: !!GROQ_API_KEY,
-        deepgram: !!DEEPGRAM_API_KEY,
-        elevenlabs: !!ELEVENLABS_API_KEY
+        status: 'healthy',
+        timestamp: new Date().toISOString()
     });
 });
 
 // Config endpoint - serves public client ID only (NOT the secret)
 app.get('/api/config', (req, res) => {
     res.json({
-        clientId: GOOGLE_CLIENT_ID || '',
+        clientId: process.env.GOOGLE_CLIENT_ID || '',
         network: process.env.SUI_NETWORK || 'testnet'
     });
-});
-
-// OAuth callback handler - exchanges code for tokens
-app.get('/api/auth/callback', async (req, res) => {
-    try {
-        const { code, state } = req.query;
-        
-        if (!code) {
-            return res.redirect('/?error=no_code');
-        }
-        
-        // Exchange code for tokens
-        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                code,
-                client_id: GOOGLE_CLIENT_ID,
-                client_secret: process.env.GOOGLE_CLIENT_SECRET,
-                redirect_uri: `${req.protocol}://${req.get('host')}`,
-                grant_type: 'authorization_code'
-            })
-        });
-        
-        const tokens = await tokenResponse.json();
-        
-        if (tokens.id_token) {
-            // Redirect back to frontend with the token
-            res.redirect(`/?id_token=${tokens.id_token}&state=${state || ''}`);
-        } else {
-            console.error('Token exchange failed:', tokens);
-            res.redirect('/?error=token_exchange_failed');
-        }
-    } catch (error) {
-        console.error('Callback error:', error);
-        res.redirect('/?error=callback_failed');
-    }
 });
 
 // ===== ZKLOGIN AUTH =====
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const crypto = require('crypto');
-
-// Google's public keys
-let googleKeys = null;
-let keysLastFetched = 0;
-
-async function getGoogleKeys() {
-    if (googleKeys && (Date.now() - keysLastFetched) < 86400000) {
-        return googleKeys;
-    }
-    const response = await fetch('https://www.googleapis.com/oauth2/v3/certs');
-    googleKeys = await response.json();
-    keysLastFetched = Date.now();
-    return googleKeys;
-}
 
 // Derive Sui address from JWT claims
 function deriveSuiAddress(sub, aud, iss) {
@@ -167,18 +103,30 @@ app.post('/api/auth/verify', express.json(), async (req, res) => {
     try {
         const { idToken } = req.body;
         
-        if (!idToken) {
+        if (!idToken || typeof idToken !== 'string') {
             return res.status(400).json({ error: 'Missing idToken' });
         }
         
+        // SECURITY: Verify token format
+        const tokenParts = idToken.split('.');
+        if (tokenParts.length !== 3 || idToken.length > 2000) {
+            return res.status(400).json({ error: 'Invalid token format' });
+        }
+        
         // Decode JWT
-        const [headerB64, payloadB64] = idToken.split('.');
+        const [headerB64, payloadB64] = tokenParts;
         const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString());
         const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
         
         // Verify expiry
-        if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < now) {
             return res.status(401).json({ error: 'Token expired' });
+        }
+        
+        // Verify token age (max 1 hour)
+        if (payload.iat && (now - payload.iat) > 3600) {
+            return res.status(401).json({ error: 'Token too old' });
         }
         
         // Verify audience
@@ -189,6 +137,11 @@ app.post('/api/auth/verify', express.json(), async (req, res) => {
         // Verify issuer
         if (!['https://accounts.google.com', 'https://openidconnect.googleapis.com'].includes(payload.iss)) {
             return res.status(401).json({ error: 'Invalid issuer' });
+        }
+        
+        // SECURITY: Verify sub is numeric
+        if (!payload.sub || !/^\d+$/.test(payload.sub)) {
+            return res.status(401).json({ error: 'Invalid subject' });
         }
         
         // Derive Sui address
@@ -202,7 +155,8 @@ app.post('/api/auth/verify', express.json(), async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Auth error:', error.message);
+        // SECURITY: Don't leak error details
+        console.error('Auth verification failed');
         res.status(401).json({ error: 'Verification failed' });
     }
 });
@@ -211,6 +165,25 @@ app.post('/api/auth/verify', express.json(), async (req, res) => {
 app.post('/api/chat', express.json(), async (req, res) => {
     try {
         const { messages } = req.body;
+        
+        // INPUT VALIDATION
+        if (!Array.isArray(messages) || messages.length === 0) {
+            return res.status(400).json({ error: 'Messages required' });
+        }
+        
+        if (messages.length > 20) {
+            return res.status(400).json({ error: 'Too many messages' });
+        }
+        
+        // Sanitize messages
+        const sanitizedMessages = messages
+            .filter(msg => msg.role && msg.content && typeof msg.content === 'string')
+            .slice(-20)
+            .map(msg => ({
+                role: msg.role,
+                content: msg.content.slice(0, 1000).replace(/[<>{}]/g, '')
+            }));
+        
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -224,29 +197,65 @@ app.post('/api/chat', express.json(), async (req, res) => {
                         role: 'system',
                         content: `You are Ankore, a calm, warm AI wellness companion. Keep responses SHORT (1-3 sentences). Warm, steady tone. Guide through breathing when overwhelmed. Help break tasks when unfocused. Never diagnose. Validate feelings first. Crisis? Say: "Please call 988."`
                     },
-                    ...messages
+                    ...sanitizedMessages
                 ],
                 temperature: 0.7,
                 max_tokens: 150
             })
         });
         const data = await response.json();
-        res.json(data);
+        
+        // SECURITY: Validate response
+        const aiText = data.choices?.[0]?.message?.content || "I'm here. Take a breath with me.";
+        
+        res.json({
+            text: aiText.slice(0, 500),
+            audio: null
+        });
     } catch (err) {
-        console.error('Chat error:', err);
+        // SECURITY: Don't leak error details
+        console.error('Chat request failed');
         res.status(500).json({ error: 'Chat failed' });
     }
 });
 
 // WebSocket for real-time voice
+const wsConnections = new Set();
+const wsRateLimit = new Map();
+
 wss.on('connection', (ws) => {
+    const ip = ws._socket?.remoteAddress || 'unknown';
+    
+    // SECURITY: Check if IP is blocked
+    const { isIPBlocked } = require('./api/middleware');
+    if (isIPBlocked(ip)) {
+        ws.close(1008, 'Access denied');
+        return;
+    }
+    
+    // SECURITY: Limit connections per IP
+    const wsKey = `ws:${ip}`;
+    const wsCount = wsRateLimit.get(wsKey) || 0;
+    if (wsCount > 5) {
+        ws.close(1008, 'Too many connections');
+        return;
+    }
+    wsRateLimit.set(wsKey, wsCount + 1);
+    
+    wsConnections.add(ws);
     console.log('Client connected');
 
     let deepgramSocket = null;
 
     ws.on('message', async (data) => {
         try {
-            const msg = JSON.parse(data);
+            // SECURITY: Validate message size
+            if (data.length > 100000) { // 100KB limit
+                ws.send(JSON.stringify({ type: 'error', message: 'Message too large' }));
+                return;
+            }
+            
+            const msg = JSON.parse(data.toString());
 
             if (msg.type === 'start_listening') {
                 // Connect to Deepgram for STT
@@ -256,34 +265,36 @@ wss.on('connection', (ws) => {
                 );
 
                 deepgramSocket.onopen = () => {
-                    console.log('Deepgram connected');
                     ws.send(JSON.stringify({ type: 'listening_started' }));
                 };
 
                 deepgramSocket.onmessage = async (event) => {
-                    const transcript = JSON.parse(event.data);
-                    if (transcript.is_final && transcript.channel?.alternatives?.[0]?.transcript) {
-                        const text = transcript.channel.alternatives[0].transcript;
-                        console.log('Transcript:', text);
-                        ws.send(JSON.stringify({ type: 'transcript', text }));
+                    try {
+                        const transcript = JSON.parse(event.data);
+                        if (transcript.is_final && transcript.channel?.alternatives?.[0]?.transcript) {
+                            const text = transcript.channel.alternatives[0].transcript;
+                            ws.send(JSON.stringify({ type: 'transcript', text }));
 
-                        // Get AI response
-                        ws.send(JSON.stringify({ type: 'ai_thinking' }));
-                        const aiResponse = await getAIResponse(text);
+                            // Get AI response
+                            ws.send(JSON.stringify({ type: 'ai_thinking' }));
+                            const aiResponse = await getAIResponse(text);
 
-                        // Get TTS audio
-                        const ttsAudio = await getTTS(aiResponse);
+                            // Get TTS audio
+                            const ttsAudio = await getTTS(aiResponse);
 
-                        ws.send(JSON.stringify({
-                            type: 'ai_response',
-                            text: aiResponse,
-                            audio: ttsAudio ? Buffer.from(ttsAudio).toString('base64') : null
-                        }));
+                            ws.send(JSON.stringify({
+                                type: 'ai_response',
+                                text: aiResponse,
+                                audio: ttsAudio ? Buffer.from(ttsAudio).toString('base64') : null
+                            }));
+                        }
+                    } catch (err) {
+                        console.error('Deepgram message processing failed');
                     }
                 };
 
                 deepgramSocket.onerror = (err) => {
-                    console.error('Deepgram error:', err);
+                    console.error('Deepgram connection failed');
                 };
 
             } else if (msg.type === 'audio_chunk') {
@@ -300,9 +311,14 @@ wss.on('connection', (ws) => {
                 ws.send(JSON.stringify({ type: 'listening_stopped' }));
 
             } else if (msg.type === 'text_message') {
-                // Handle text input (quick actions)
+                // SECURITY: Validate text message
+                if (!msg.text || typeof msg.text !== 'string' || msg.text.length > 1000) {
+                    ws.send(JSON.stringify({ type: 'error', message: 'Invalid message' }));
+                    return;
+                }
+                
                 ws.send(JSON.stringify({ type: 'ai_thinking' }));
-                const aiResponse = await getAIResponse(msg.text);
+                const aiResponse = await getAIResponse(msg.text.slice(0, 1000));
                 const ttsAudio = await getTTS(aiResponse);
 
                 ws.send(JSON.stringify({
@@ -312,18 +328,32 @@ wss.on('connection', (ws) => {
                 }));
             }
         } catch (err) {
-            console.error('WebSocket error:', err);
+            console.error('WebSocket message handling failed');
         }
     });
 
     ws.on('close', () => {
         if (deepgramSocket) deepgramSocket.close();
+        wsConnections.delete(ws);
+        
+        // Decrement connection count
+        const wsKey = `ws:${ip}`;
+        const wsCount = wsRateLimit.get(wsKey) || 1;
+        if (wsCount <= 1) {
+            wsRateLimit.delete(wsKey);
+        } else {
+            wsRateLimit.set(wsKey, wsCount - 1);
+        }
+        
         console.log('Client disconnected');
     });
 });
 
 async function getAIResponse(userMessage) {
     try {
+        // SECURITY: Sanitize input
+        const sanitized = userMessage.replace(/[<>{}]/g, '').slice(0, 1000);
+        
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -337,22 +367,25 @@ async function getAIResponse(userMessage) {
                         role: 'system',
                         content: `You are Ankore, a calm, warm AI wellness companion. Keep responses SHORT (1-3 sentences). Warm, steady tone. Guide through breathing when overwhelmed. Help break tasks when unfocused. Never diagnose. Validate feelings first. For breathing, pace words: "In... 2... 3... 4..." Crisis? Say: "Please call 988."`
                     },
-                    { role: 'user', content: userMessage }
+                    { role: 'user', content: sanitized }
                 ],
                 temperature: 0.7,
                 max_tokens: 150
             })
         });
         const data = await response.json();
-        return data.choices?.[0]?.message?.content || "I'm here. Take a breath with me.";
+        return (data.choices?.[0]?.message?.content || "I'm here. Take a breath with me.").slice(0, 500);
     } catch (err) {
-        console.error('Groq error:', err);
+        console.error('AI response failed');
         return "I'm here. Let's take a breath together.";
     }
 }
 
 async function getTTS(text) {
     try {
+        // SECURITY: Validate text
+        if (!text || text.length > 500) return null;
+        
         const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
             method: 'POST',
             headers: {
@@ -371,18 +404,20 @@ async function getTTS(text) {
         });
 
         if (!response.ok) {
-            const err = await response.text();
-            console.error('ElevenLabs error:', err);
+            console.error('TTS request failed');
             return null;
         }
         return await response.arrayBuffer();
     } catch (err) {
-        console.error('TTS error:', err);
+        console.error('TTS request failed');
         return null;
     }
 }
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-    console.log(`\n🎧 Ankore server running at http://localhost:${PORT}\n`);
+    // SECURITY: Don't log sensitive info in production
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`\n🎧 Ankore server running at http://localhost:${PORT}\n`);
+    }
 });
