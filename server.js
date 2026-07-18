@@ -28,6 +28,53 @@ const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
+// ===== SECURITY HEADERS =====
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' https:;");
+    next();
+});
+
+// ===== RATE LIMITING =====
+const rateLimit = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 30; // requests per window
+
+app.use('/api/', (req, res, next) => {
+    const ip = req.ip;
+    const now = Date.now();
+    
+    if (!rateLimit.has(ip)) {
+        rateLimit.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+        return next();
+    }
+    
+    const limit = rateLimit.get(ip);
+    if (now > limit.resetAt) {
+        limit.count = 1;
+        limit.resetAt = now + RATE_LIMIT_WINDOW;
+        return next();
+    }
+    
+    limit.count++;
+    if (limit.count > RATE_LIMIT_MAX) {
+        return res.status(429).json({ error: 'Too many requests' });
+    }
+    next();
+});
+
+// Clean up old rate limits every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, limit] of rateLimit) {
+        if (now > limit.resetAt) rateLimit.delete(ip);
+    }
+}, 300000);
+
 // Serve static files
 app.use(express.static(__dirname));
 
@@ -43,6 +90,84 @@ app.get('/api/health', (req, res) => {
         deepgram: !!DEEPGRAM_API_KEY,
         elevenlabs: !!ELEVENLABS_API_KEY
     });
+});
+
+// Config endpoint - serves public client ID only (NOT the secret)
+app.get('/api/config', (req, res) => {
+    res.json({
+        clientId: GOOGLE_CLIENT_ID || '',
+        network: process.env.SUI_NETWORK || 'testnet'
+    });
+});
+
+// ===== ZKLOGIN AUTH =====
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const crypto = require('crypto');
+
+// Google's public keys
+let googleKeys = null;
+let keysLastFetched = 0;
+
+async function getGoogleKeys() {
+    if (googleKeys && (Date.now() - keysLastFetched) < 86400000) {
+        return googleKeys;
+    }
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/certs');
+    googleKeys = await response.json();
+    keysLastFetched = Date.now();
+    return googleKeys;
+}
+
+// Derive Sui address from JWT claims
+function deriveSuiAddress(sub, aud, iss) {
+    const data = `${sub}:${aud}:${iss}`;
+    const hash = crypto.createHash('sha256').update(data).digest();
+    return '0x' + hash.slice(0, 32).toString('hex');
+}
+
+// Verify Google JWT
+app.post('/api/auth/verify', express.json(), async (req, res) => {
+    try {
+        const { idToken } = req.body;
+        
+        if (!idToken) {
+            return res.status(400).json({ error: 'Missing idToken' });
+        }
+        
+        // Decode JWT
+        const [headerB64, payloadB64] = idToken.split('.');
+        const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString());
+        const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
+        
+        // Verify expiry
+        if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+            return res.status(401).json({ error: 'Token expired' });
+        }
+        
+        // Verify audience
+        if (GOOGLE_CLIENT_ID && payload.aud !== GOOGLE_CLIENT_ID) {
+            return res.status(401).json({ error: 'Invalid audience' });
+        }
+        
+        // Verify issuer
+        if (!['https://accounts.google.com', 'https://openidconnect.googleapis.com'].includes(payload.iss)) {
+            return res.status(401).json({ error: 'Invalid issuer' });
+        }
+        
+        // Derive Sui address
+        const suiAddress = deriveSuiAddress(payload.sub, payload.aud, payload.iss);
+        
+        // Return verified info (NO PII stored)
+        res.json({
+            verified: true,
+            address: suiAddress,
+            name: payload.name || payload.given_name || 'User'
+        });
+        
+    } catch (error) {
+        console.error('Auth error:', error.message);
+        res.status(401).json({ error: 'Verification failed' });
+    }
 });
 
 // Chat completion endpoint

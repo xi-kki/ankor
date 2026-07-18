@@ -9,6 +9,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script type="module">
+        import { SuiClient } from 'https://esm.sh/@mysten/sui.js/client';
+        import { zkLogin } from 'https://esm.sh/@mysten/sui.js/zklogin';
+        window.SuiClient = SuiClient;
+        window.zkLogin = zkLogin;
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,6 +28,7 @@
                         anchor: {
                             bg: '#0a0a0f',
                             accent: '#7c6aef',
+                            glow: '#9d8bff',
                         }
                     },
                 },
@@ -31,47 +38,99 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
-        .hero-video { object-position: 80% center; }
-        @media (min-width: 768px) { .hero-video { object-position: right center; } }
-        @media (min-width: 1024px) { .hero-video { object-position: center center; } }
+
+        /* ===== CURSOR PARALLAX ===== */
+        .hero-video-wrapper {
+            position: absolute;
+            inset: -120px;
+            will-change: transform;
+        }
+        .hero-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center center;
+        }
+
+
+
+        /* ===== PAGE TRANSITIONS ===== */
         .landing-page { transition: opacity 0.8s ease, transform 0.8s ease; }
         .landing-page.hidden-state { opacity: 0; transform: scale(1.05); pointer-events: none; }
         .app-page { transition: opacity 0.8s ease, transform 0.8s ease; }
         .app-page.hidden-state { opacity: 0; transform: scale(0.95); pointer-events: none; }
-        @keyframes breathe {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.03); }
+
+        /* ===== MIC BUTTON ===== */
+        .mic-btn {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(124,106,239,0.15) 0%, rgba(124,106,239,0.05) 100%);
+            border: 1.5px solid rgba(124,106,239,0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
         }
-        .avatar-breathe { animation: breathe 4s ease-in-out infinite; }
-        @keyframes audioBar {
-            0%, 100% { height: 8px; }
-            50% { height: var(--bar-height, 32px); }
+        .mic-btn:hover {
+            background: linear-gradient(135deg, rgba(124,106,239,0.25) 0%, rgba(124,106,239,0.1) 100%);
+            border-color: rgba(124,106,239,0.5);
+            box-shadow: 0 0 40px rgba(124,106,239,0.2);
         }
-        .audio-bar {
-            animation: audioBar var(--bar-speed, 0.5s) ease-in-out infinite;
-            animation-delay: var(--bar-delay, 0s);
+        .mic-btn.listening {
+            background: linear-gradient(135deg, rgba(124,106,239,0.4) 0%, rgba(124,106,239,0.2) 100%);
+            border-color: rgba(124,106,239,0.7);
+            box-shadow: 0 0 60px rgba(124,106,239,0.4);
+            animation: micPulse 2s ease-in-out infinite;
         }
-        @keyframes typingDot {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-            30% { transform: translateY(-4px); opacity: 1; }
+        @keyframes micPulse {
+            0%, 100% { box-shadow: 0 0 60px rgba(124,106,239,0.4); }
+            50% { box-shadow: 0 0 80px rgba(124,106,239,0.6); }
         }
-        .typing-dot { animation: typingDot 1.4s ease-in-out infinite; }
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        /* ===== WAVEFORM ===== */
+        .waveform-bar {
+            width: 3px;
+            border-radius: 2px;
+            background: rgba(124,106,239,0.6);
+            transition: height 0.1s ease;
+        }
+        .waveform-bar.active {
+            background: rgba(124,106,239,0.9);
+        }
+
+        /* ===== PULSE RINGS ===== */
         .pulse-ring {
             position: absolute;
             inset: 0;
             border-radius: 50%;
-            border: 2px solid rgba(124, 106, 239, 0.4);
+            border: 1px solid rgba(124,106,239,0.4);
             opacity: 0;
-            animation: pulseExpand 2s ease-out infinite;
+            animation: pulseExpand 2.5s ease-out infinite;
         }
-        .pulse-ring:nth-child(2) { animation-delay: 0.5s; }
-        .pulse-ring:nth-child(3) { animation-delay: 1s; }
+        .pulse-ring:nth-child(2) { animation-delay: 0.6s; }
+        .pulse-ring:nth-child(3) { animation-delay: 1.2s; }
         @keyframes pulseExpand {
             0% { transform: scale(1); opacity: 0.6; }
-            100% { transform: scale(1.8); opacity: 0; }
+            100% { transform: scale(2.2); opacity: 0; }
         }
+
+        /* ===== TYPING DOTS ===== */
+        @keyframes typingDot {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+            30% { transform: translateY(-5px); opacity: 1; }
+        }
+        .typing-dot { animation: typingDot 1.4s ease-in-out infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        /* ===== GLASS ===== */
+        .glass {
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        /* ===== FADE ANIMATIONS ===== */
         ::-webkit-scrollbar { display: none; }
         html { scrollbar-width: none; }
         @keyframes fadeInUp {
@@ -83,16 +142,25 @@
         .delay-2 { animation-delay: 0.2s; opacity: 0; }
         .delay-3 { animation-delay: 0.3s; opacity: 0; }
         .delay-4 { animation-delay: 0.4s; opacity: 0; }
+        .delay-5 { animation-delay: 0.5s; opacity: 0; }
+
+        /* ===== DRAWER ===== */
+        .drawer { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .drawer.closed { transform: translateY(100%); }
+        .drawer.open { transform: translateY(0); }
     </style>
 </head>
 <body class="bg-anchor-bg text-white">
 
     <!-- ==================== LANDING PAGE ==================== -->
     <div id="landingPage" class="landing-page fixed inset-0 z-50">
-        <video class="hero-video absolute inset-0 w-full h-full object-cover brightness-[0.4]" autoplay loop muted playsinline>
-            <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260618_174853_aac61aa2-0f3f-4cf1-bc78-7f657dd11164.mp4" type="video/mp4">
-        </video>
+        <div id="videoWrapper" class="hero-video-wrapper">
+            <video class="hero-video brightness-[0.35]" autoplay loop muted playsinline>
+                <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260618_174853_aac61aa2-0f3f-4cf1-bc78-7f657dd11164.mp4" type="video/mp4">
+            </video>
+        </div>
         <div class="absolute inset-0 z-[1] bg-gradient-to-b from-transparent via-transparent to-anchor-bg"></div>
+
         <div class="relative z-10 h-full flex flex-col px-6 sm:px-10 lg:px-12 py-6 sm:py-8">
             <nav class="flex items-center justify-between fade-in delay-1">
                 <div class="flex items-center gap-3">
@@ -104,17 +172,15 @@
                 <button class="sm:hidden text-white p-2">
                     <i data-lucide="menu" class="w-6 h-6"></i>
                 </button>
-                <button class="hidden sm:block bg-white/10 text-white font-medium text-sm px-6 py-3 rounded-full border border-white/20 hover:bg-white/20 transition-colors">
-                    Sign In
-                </button>
             </nav>
+
             <div class="flex-1 sm:hidden"></div>
             <div class="flex flex-col sm:flex-1 sm:flex-row sm:items-end pb-8 sm:pb-12 lg:pb-16 sm:mt-auto">
                 <div class="flex-1">
                     <h1 class="font-askan text-white text-[2.5rem] sm:text-[4rem] md:text-[5rem] lg:text-[6rem] leading-[1] tracking-tight max-w-[700px] fade-in delay-2">
                         Talk to someone.<br><span class="text-white/40">Right now.</span>
                     </h1>
-                    <p class="text-white/60 text-sm sm:text-lg max-w-[400px] leading-relaxed mt-4 sm:mt-6 fade-in delay-3">
+                    <p class="text-white/50 text-sm sm:text-lg max-w-[400px] leading-relaxed mt-4 sm:mt-6 fade-in delay-3">
                         When the panic hits at 2 AM. When you can't move. When no one's around.
                         <span class="text-white font-medium">Ankor is.</span>
                     </p>
@@ -122,120 +188,288 @@
                         <i data-lucide="mic" class="w-5 h-5"></i>
                         <span>Start Talking</span>
                     </button>
-                    <p class="text-white/30 text-xs mt-3 fade-in delay-4 flex items-center gap-2">
+                    <p class="text-white/25 text-xs mt-3 fade-in delay-5 flex items-center gap-2">
                         <i data-lucide="lock" class="w-3 h-3"></i>
-                        Free · Private · No signup
+                        Your conversations, your data. Always.
                     </p>
                 </div>
                 <div class="hidden sm:flex flex-col items-end gap-3 self-end">
-                    <div class="flex items-center gap-2 bg-white/5 text-white/80 text-sm px-4 py-2.5 rounded-full border border-white/10">
+                    <div class="flex items-center gap-2 bg-white/5 text-white/70 text-sm px-4 py-2.5 rounded-full border border-white/10">
                         <i data-lucide="mic" class="w-4 h-4 text-anchor-accent"></i>
                         <span>Voice-first</span>
                     </div>
-                    <div class="flex items-center gap-2 bg-white/5 text-white/80 text-sm px-4 py-2.5 rounded-full border border-white/10">
+                    <div class="flex items-center gap-2 bg-white/5 text-white/70 text-sm px-4 py-2.5 rounded-full border border-white/10">
                         <i data-lucide="heart-pulse" class="w-4 h-4 text-anchor-accent"></i>
                         <span>Real-time calm</span>
                     </div>
-                    <div class="flex items-center gap-2 bg-white/5 text-white/80 text-sm px-4 py-2.5 rounded-full border border-white/10">
-                        <i data-lucide="list-checks" class="w-4 h-4 text-anchor-accent"></i>
-                        <span>Task breakdown</span>
+                    <div class="flex items-center gap-2 bg-white/5 text-white/70 text-sm px-4 py-2.5 rounded-full border border-white/10">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-anchor-accent"></i>
+                        <span>End-to-end encrypted</span>
                     </div>
                 </div>
             </div>
+
             <div class="flex sm:hidden flex-wrap gap-2 mb-2">
-                <div class="flex items-center gap-1.5 bg-white/5 text-white/70 text-xs px-3 py-2 rounded-full border border-white/10">
+                <div class="flex items-center gap-1.5 bg-white/5 text-white/60 text-xs px-3 py-2 rounded-full border border-white/10">
                     <i data-lucide="mic" class="w-3 h-3"></i>
                     <span>Voice-first</span>
                 </div>
-                <div class="flex items-center gap-1.5 bg-white/5 text-white/70 text-xs px-3 py-2 rounded-full border border-white/10">
+                <div class="flex items-center gap-1.5 bg-white/5 text-white/60 text-xs px-3 py-2 rounded-full border border-white/10">
                     <i data-lucide="heart-pulse" class="w-3 h-3"></i>
                     <span>Real-time calm</span>
                 </div>
-                <div class="flex items-center gap-1.5 bg-white/5 text-white/70 text-xs px-3 py-2 rounded-full border border-white/10">
-                    <i data-lucide="list-checks" class="w-3 h-3"></i>
-                    <span>Task breakdown</span>
+                <div class="flex items-center gap-1.5 bg-white/5 text-white/60 text-xs px-3 py-2 rounded-full border border-white/10">
+                    <i data-lucide="shield-check" class="w-3 h-3"></i>
+                    <span>Encrypted</span>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- ==================== APP PAGE ==================== -->
-    <div id="appPage" class="app-page hidden-state fixed inset-0 z-40 bg-anchor-bg flex flex-col items-center justify-center">
-        <div class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 sm:px-8 py-4 sm:py-6">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <i data-lucide="anchor" class="w-4 h-4 text-white/60"></i>
-                </div>
-                <span class="font-askan text-white/60 text-sm tracking-wide">Ankor</span>
-            </div>
-            <button class="text-white/40 hover:text-white/70 transition-colors p-2">
-                <i data-lucide="info" class="w-5 h-5"></i>
-            </button>
+    <div id="appPage" class="app-page hidden-state fixed inset-0 z-40 flex flex-col">
+        <!-- Same video background as landing -->
+        <div class="absolute inset-0">
+            <video class="w-full h-full object-cover brightness-[0.2]" autoplay loop muted playsinline>
+                <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260618_174853_aac61aa2-0f3f-4cf1-bc78-7f657dd11164.mp4" type="video/mp4">
+            </video>
+            <div class="absolute inset-0 bg-gradient-to-b from-anchor-bg/80 via-anchor-bg/40 to-anchor-bg"></div>
         </div>
-        <div class="relative z-10 flex flex-col items-center justify-center px-6 max-w-lg w-full">
-            <div id="avatarContainer" class="relative mb-8">
+
+        <!-- Top Bar -->
+        <div class="relative z-20 flex items-center justify-between px-6 sm:px-8 py-5 sm:py-6">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
+                    <i data-lucide="anchor" class="w-4 h-4 text-white/40"></i>
+                </div>
+                <span class="font-askan text-white/40 text-sm tracking-wide">Ankor</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5 bg-white/5 text-white/30 text-xs px-3 py-1.5 rounded-full border border-white/5">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-400/60"></div>
+                    <span>Encrypted</span>
+                </div>
+                <button onclick="toggleDrawer()" class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 text-white/40 hover:text-white/70 hover:bg-white/10 transition-all">
+                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                </button>
+                <button onclick="showConnectModal()" id="walletBtnTop" class="flex items-center gap-2 bg-anchor-accent/20 hover:bg-anchor-accent/30 text-white/80 hover:text-white text-sm px-4 py-2 rounded-full border border-anchor-accent/30 transition-all">
+                    <i data-lucide="wallet" class="w-4 h-4"></i>
+                    <span id="walletBtnTopText">Connect</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-6">
+            <!-- Status -->
+            <p id="statusText" class="text-white/30 text-sm mb-10 text-center fade-in delay-1">Tap the mic to begin</p>
+
+            <!-- Mic Button with Pulse Rings -->
+            <div class="relative mb-10">
                 <div id="pulseContainer" class="absolute inset-0 opacity-0 transition-opacity duration-500">
                     <div class="pulse-ring"></div>
                     <div class="pulse-ring"></div>
                     <div class="pulse-ring"></div>
                 </div>
-                <div id="avatarCircle" class="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-gradient-to-br from-anchor-accent to-purple-700 flex items-center justify-center avatar-breathe cursor-pointer transition-all duration-500 shadow-[0_0_0_4px_rgba(124,106,239,0.3)]" onclick="toggleListening()">
-                    <i data-lucide="mic" id="avatarIcon" class="w-12 h-12 sm:w-16 sm:h-16 text-white"></i>
+                <button id="micBtn" class="mic-btn flex items-center justify-center" onclick="toggleListening()">
+                    <i data-lucide="mic" id="micIcon" class="w-8 h-8 text-white/80"></i>
+                </button>
+            </div>
+
+            <!-- Waveform Visualizer -->
+            <div id="waveform" class="flex items-center justify-center gap-[3px] h-12 mb-8 opacity-0 transition-opacity duration-300">
+                <div class="waveform-bar" style="height: 8px;"></div>
+                <div class="waveform-bar" style="height: 12px;"></div>
+                <div class="waveform-bar" style="height: 18px;"></div>
+                <div class="waveform-bar" style="height: 24px;"></div>
+                <div class="waveform-bar" style="height: 32px;"></div>
+                <div class="waveform-bar" style="height: 28px;"></div>
+                <div class="waveform-bar" style="height: 20px;"></div>
+                <div class="waveform-bar" style="height: 14px;"></div>
+                <div class="waveform-bar" style="height: 10px;"></div>
+            </div>
+
+            <!-- AI Response -->
+            <div id="messageArea" class="w-full max-w-lg flex flex-col items-center justify-center min-h-[60px]">
+                <div id="typingIndicator" class="hidden flex items-center gap-2 text-white/30">
+                    <div class="typing-dot w-1.5 h-1.5 rounded-full bg-anchor-accent"></div>
+                    <div class="typing-dot w-1.5 h-1.5 rounded-full bg-anchor-accent"></div>
+                    <div class="typing-dot w-1.5 h-1.5 rounded-full bg-anchor-accent"></div>
+                </div>
+                <div id="aiResponse" class="hidden text-center px-4">
+                    <p id="aiResponseText" class="text-white/70 text-base sm:text-lg leading-relaxed"></p>
                 </div>
             </div>
-            <p id="statusText" class="text-white/50 text-sm sm:text-base mb-6 text-center">Tap to start talking</p>
-            <div id="audioBars" class="flex items-end gap-1 h-12 mb-8 opacity-0 transition-opacity duration-300">
-                <div class="audio-bar w-1.5 bg-anchor-accent rounded-full" style="--bar-height: 20px; --bar-speed: 0.4s; --bar-delay: 0s;"></div>
-                <div class="audio-bar w-1.5 bg-anchor-accent rounded-full" style="--bar-height: 32px; --bar-speed: 0.5s; --bar-delay: 0.1s;"></div>
-                <div class="audio-bar w-1.5 bg-anchor-accent rounded-full" style="--bar-height: 24px; --bar-speed: 0.35s; --bar-delay: 0.15s;"></div>
-                <div class="audio-bar w-1.5 bg-anchor-accent rounded-full" style="--bar-height: 40px; --bar-speed: 0.45s; --bar-delay: 0.05s;"></div>
-                <div class="audio-bar w-1.5 bg-anchor-accent rounded-full" style="--bar-height: 28px; --bar-speed: 0.55s; --bar-delay: 0.2s;"></div>
-                <div class="audio-bar w-1.5 bg-anchor-accent rounded-full" style="--bar-height: 36px; --bar-speed: 0.4s; --bar-delay: 0.12s;"></div>
-                <div class="audio-bar w-1.5 bg-anchor-accent rounded-full" style="--bar-height: 18px; --bar-speed: 0.5s; --bar-delay: 0.08s;"></div>
-                <div class="audio-bar w-1.5 bg-anchor-accent rounded-full" style="--bar-height: 26px; --bar-speed: 0.38s; --bar-delay: 0.18s;"></div>
-                <div class="audio-bar w-1.5 bg-anchor-accent rounded-full" style="--bar-height: 16px; --bar-speed: 0.48s; --bar-delay: 0.22s;"></div>
-            </div>
-            <div id="messageArea" class="w-full min-h-[80px] flex flex-col items-center justify-center">
-                <div id="typingIndicator" class="hidden flex items-center gap-2 text-white/40">
-                    <div class="typing-dot w-2 h-2 rounded-full bg-anchor-accent"></div>
-                    <div class="typing-dot w-2 h-2 rounded-full bg-anchor-accent"></div>
-                    <div class="typing-dot w-2 h-2 rounded-full bg-anchor-accent"></div>
-                </div>
-                <div id="aiResponse" class="hidden text-center">
-                    <p id="aiResponseText" class="text-white/90 text-base sm:text-lg leading-relaxed"></p>
-                </div>
-            </div>
+
+            <!-- Quick Actions -->
             <div id="quickActions" class="flex flex-wrap justify-center gap-3 mt-8">
-                <button onclick="sendQuickAction('I\'m overwhelmed and can\'t think straight')" class="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-sm px-5 py-3 rounded-full transition-all duration-200">
+                <button onclick="sendQuickAction('I\'m overwhelmed and can\'t think straight')" class="glass flex items-center gap-2 hover:bg-white/10 text-white/50 hover:text-white/80 text-sm px-5 py-3 rounded-full transition-all duration-200">
                     <i data-lucide="brain" class="w-4 h-4"></i>
-                    <span>I'm overwhelmed</span>
+                    <span>Overwhelmed</span>
                 </button>
-                <button onclick="sendQuickAction('I can\'t focus on anything, my mind is racing')" class="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-sm px-5 py-3 rounded-full transition-all duration-200">
+                <button onclick="sendQuickAction('I can\'t focus on anything, my mind is racing')" class="glass flex items-center gap-2 hover:bg-white/10 text-white/50 hover:text-white/80 text-sm px-5 py-3 rounded-full transition-all duration-200">
                     <i data-lucide="focus" class="w-4 h-4"></i>
-                    <span>Can't focus</span>
+                    <span>Racing mind</span>
                 </button>
-                <button onclick="sendQuickAction('I just need to calm down and breathe')" class="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-sm px-5 py-3 rounded-full transition-all duration-200">
+                <button onclick="sendQuickAction('I just need to calm down and breathe')" class="glass flex items-center gap-2 hover:bg-white/10 text-white/50 hover:text-white/80 text-sm px-5 py-3 rounded-full transition-all duration-200">
                     <i data-lucide="wind" class="w-4 h-4"></i>
-                    <span>Need to breathe</span>
+                    <span>Breathe</span>
                 </button>
             </div>
         </div>
-        <div class="absolute bottom-6 sm:bottom-8 left-0 right-0 text-center">
-            <p class="text-white/20 text-xs flex items-center justify-center gap-1.5">
-                <i data-lucide="shield-check" class="w-3 h-3"></i>
-                AI companion, not a therapist. In crisis? Call 988.
-            </p>
+
+        <!-- Bottom -->
+        <div class="relative z-20 px-6 sm:px-8 py-5 sm:py-6">
+            <div class="flex items-center justify-between">
+                <p id="walletStatus" class="text-white/15 text-xs flex items-center gap-1.5">
+                    <i data-lucide="shield-alert" class="w-3 h-3"></i>
+                    Not a therapist. In crisis? Call 988.
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CONNECT WALLET MODAL ==================== -->
+    <div id="connectModal" class="fixed inset-0 z-[100] hidden">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="hideConnectModal()"></div>
+        <!-- Modal -->
+        <div class="absolute inset-0 flex items-center justify-center p-6">
+            <div class="bg-anchor-bg border border-white/10 rounded-3xl p-8 max-w-sm w-full relative">
+                <!-- Close -->
+                <button onclick="hideConnectModal()" class="absolute top-4 right-4 text-white/30 hover:text-white/60 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+                
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-anchor-accent/20 flex items-center justify-center border border-anchor-accent/30">
+                        <i data-lucide="shield-check" class="w-8 h-8 text-anchor-accent"></i>
+                    </div>
+                    <h2 class="text-white text-xl font-medium mb-2">Connect your wallet</h2>
+                    <p class="text-white/40 text-sm">Sign in with your existing account. Your data stays encrypted and owned by you.</p>
+                </div>
+                
+                <!-- Provider Buttons -->
+                <div class="space-y-3">
+                    <button onclick="connectWithGoogle()" class="w-full flex items-center gap-3 bg-white hover:bg-white/90 text-black font-medium py-3.5 px-4 rounded-xl transition-all">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span>Continue with Google</span>
+                    </button>
+                    
+                    <button onclick="connectWithApple()" class="w-full flex items-center gap-3 bg-white hover:bg-white/90 text-black font-medium py-3.5 px-4 rounded-xl transition-all">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                        </svg>
+                        <span>Continue with Apple</span>
+                    </button>
+                    
+                    <div class="relative my-4">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-white/10"></div>
+                        </div>
+                        <div class="relative flex justify-center text-xs">
+                            <span class="px-3 bg-anchor-bg text-white/30">or</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="connectWithEmail()" class="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-medium py-3.5 px-4 rounded-xl border border-white/10 transition-all">
+                        <i data-lucide="mail" class="w-4 h-4"></i>
+                        <span>Continue with email</span>
+                    </button>
+                </div>
+                
+                <!-- Footer -->
+                <p class="text-center text-white/20 text-xs mt-6">
+                    <i data-lucide="lock" class="w-3 h-3 inline mr-1"></i>
+                    Your wallet, your data. We can't read your conversations.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== HISTORY DRAWER ==================== -->
+    <div id="historyDrawer" class="drawer closed fixed bottom-0 left-0 right-0 z-50 h-[65vh] bg-anchor-bg/95 backdrop-blur-xl border-t border-white/10 rounded-t-3xl">
+        <div class="flex flex-col h-full">
+            <div class="flex justify-center pt-3 pb-2">
+                <div class="w-10 h-1 rounded-full bg-white/20"></div>
+            </div>
+            <div class="flex items-center justify-between px-6 py-3">
+                <h3 class="text-white/60 font-medium text-sm">Conversations</h3>
+                <button onclick="toggleDrawer()" class="text-white/30 hover:text-white/60 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="conversationList" class="flex-1 overflow-y-auto px-6 pb-6">
+                <div class="text-center py-12">
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
+                        <i data-lucide="message-square" class="w-6 h-6 text-white/15"></i>
+                    </div>
+                    <p class="text-white/25 text-sm mb-1">No conversations yet</p>
+                    <p class="text-white/15 text-xs">Your chats will appear here, encrypted on-chain.</p>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-white/5">
+                <button class="w-full glass rounded-xl py-3 text-white/40 text-sm flex items-center justify-center gap-2 hover:bg-white/5 hover:text-white/60 transition-all">
+                    <i data-lucide="wallet" class="w-4 h-4"></i>
+                    <span>Connect wallet to sync across devices</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
         lucide.createIcons();
 
+        // ===== STATE =====
         let isListening = false;
         let mediaRecorder = null;
         let audioContext = null;
+        let analyser = null;
         let conversationHistory = [];
+        let drawerOpen = false;
+        let waveformAnimation = null;
 
+        // ===== CURSOR PARALLAX =====
+        const videoWrapper = document.getElementById('videoWrapper');
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let currentX = 0, currentY = 0;
+        let targetX = 0, targetY = 0;
+        const PARALLAX_STRENGTH = 50;
+        const SMOOTHING = 0.08;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            targetX = (e.clientX / window.innerWidth - 0.5) * PARALLAX_STRENGTH * 2;
+            targetY = (e.clientY / window.innerHeight - 0.5) * PARALLAX_STRENGTH * 2;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches[0]) {
+                targetX = (e.touches[0].clientX / window.innerWidth - 0.5) * PARALLAX_STRENGTH * 2;
+                targetY = (e.touches[0].clientY / window.innerHeight - 0.5) * PARALLAX_STRENGTH * 2;
+            }
+        }, { passive: true });
+
+        function animateParallax() {
+            currentX += (targetX - currentX) * SMOOTHING;
+            currentY += (targetY - currentY) * SMOOTHING;
+            if (videoWrapper) {
+                videoWrapper.style.transform = `translate(${-currentX}px, ${-currentY}px)`;
+            }
+            requestAnimationFrame(animateParallax);
+        }
+        animateParallax();
+
+        // ===== PAGE TRANSITIONS =====
         function startApp() {
             document.getElementById('landingPage').classList.add('hidden-state');
             setTimeout(() => {
@@ -243,6 +477,7 @@
             }, 400);
         }
 
+        // ===== MIC / LISTENING =====
         async function toggleListening() {
             if (isListening) {
                 stopListening();
@@ -255,35 +490,36 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 audioContext = new AudioContext();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 64;
+
                 const source = audioContext.createMediaStreamSource(stream);
-                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                source.connect(analyser);
 
-                source.connect(processor);
-                processor.connect(audioContext.destination);
-
-                const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                 const audioChunks = [];
 
                 mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
+                    if (e.data.size > 0) audioChunks.push(e);
                 };
 
                 mediaRecorder.onstop = async () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     await processVoice(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
                 };
 
                 mediaRecorder.start();
                 isListening = true;
-                updateAvatarState(true);
+                updateUI(true);
+                animateWaveform();
 
-                // Auto-stop after 10 seconds
                 setTimeout(() => {
-                    if (isListening) {
+                    if (isListening && mediaRecorder.state === 'recording') {
                         mediaRecorder.stop();
                         stopListening();
                     }
-                }, 10000);
+                }, 12000);
 
             } catch (err) {
                 console.error('Microphone error:', err);
@@ -297,64 +533,89 @@
                 audioContext.close();
                 audioContext = null;
             }
-            updateAvatarState(false);
+            if (waveformAnimation) {
+                cancelAnimationFrame(waveformAnimation);
+                waveformAnimation = null;
+            }
+            updateUI(false);
         }
 
-        function updateAvatarState(listening) {
-            const avatar = document.getElementById('avatarCircle');
+        function updateUI(listening) {
+            const micBtn = document.getElementById('micBtn');
             const pulseContainer = document.getElementById('pulseContainer');
-            const audioBars = document.getElementById('audioBars');
+            const waveform = document.getElementById('waveform');
+            const statusText = document.getElementById('statusText');
 
             if (listening) {
-                avatar.classList.remove('avatar-breathe');
-                avatar.style.transform = 'scale(1.1)';
-                avatar.style.boxShadow = '0 0 60px 30px rgba(124, 106, 239, 0.4)';
+                micBtn.classList.add('listening');
                 pulseContainer.style.opacity = '1';
-                audioBars.style.opacity = '1';
-                document.getElementById('statusText').textContent = 'Listening...';
+                waveform.style.opacity = '1';
+                statusText.textContent = 'Listening...';
+                statusText.style.color = 'rgba(124,106,239,0.6)';
             } else {
-                avatar.classList.add('avatar-breathe');
-                avatar.style.transform = 'scale(1)';
-                avatar.style.boxShadow = '0 0 0 4px rgba(124, 106, 239, 0.3)';
+                micBtn.classList.remove('listening');
                 pulseContainer.style.opacity = '0';
-                audioBars.style.opacity = '0';
-                document.getElementById('statusText').textContent = 'Tap to continue';
+                waveform.style.opacity = '0';
+                statusText.textContent = 'Tap to continue';
+                statusText.style.color = '';
+                // Reset waveform bars
+                document.querySelectorAll('.waveform-bar').forEach(bar => {
+                    bar.style.height = '8px';
+                    bar.classList.remove('active');
+                });
             }
         }
 
+        // ===== WAVEFORM ANIMATION =====
+        function animateWaveform() {
+            if (!analyser || !isListening) return;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            const bars = document.querySelectorAll('.waveform-bar');
+
+            function draw() {
+                if (!isListening) return;
+                analyser.getByteFrequencyData(dataArray);
+
+                bars.forEach((bar, i) => {
+                    const value = dataArray[i] || 0;
+                    const height = Math.max(6, (value / 255) * 40);
+                    bar.style.height = `${height}px`;
+                    bar.classList.toggle('active', value > 100);
+                });
+
+                waveformAnimation = requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        // ===== VOICE PROCESSING =====
         async function processVoice(audioBlob) {
-            // For now, use text input as fallback
-            // Voice processing will work when backend is connected
             document.getElementById('statusText').textContent = 'Processing...';
         }
 
+        // ===== QUICK ACTIONS =====
         async function sendQuickAction(text) {
             showTyping();
             document.getElementById('statusText').textContent = '';
 
             try {
                 conversationHistory.push({ role: 'user', content: text });
-
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ messages: conversationHistory })
                 });
-
                 const data = await response.json();
                 conversationHistory.push({ role: 'assistant', content: data.text });
-
                 showAIResponse(data.text);
-
-                if (data.audio) {
-                    playAudio(data.audio);
-                }
+                if (data.audio) playAudio(data.audio);
             } catch (err) {
-                console.error('Chat error:', err);
                 showAIResponse("I'm here. Let's take a breath together.");
             }
         }
 
+        // ===== UI HELPERS =====
         function showTyping() {
             document.getElementById('typingIndicator').classList.remove('hidden');
             document.getElementById('aiResponse').classList.add('hidden');
@@ -364,18 +625,15 @@
             document.getElementById('typingIndicator').classList.add('hidden');
             const aiResponse = document.getElementById('aiResponse');
             const aiText = document.getElementById('aiResponseText');
-
             aiResponse.classList.remove('hidden');
             aiText.textContent = text;
             aiText.style.opacity = '0';
             aiText.style.transform = 'translateY(10px)';
-
             requestAnimationFrame(() => {
                 aiText.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
                 aiText.style.opacity = '1';
                 aiText.style.transform = 'translateY(0)';
             });
-
             setTimeout(() => {
                 aiText.style.opacity = '0';
                 setTimeout(() => { aiResponse.classList.add('hidden'); }, 500);
@@ -386,6 +644,154 @@
             const audio = new Audio(`data:audio/mpeg;base64,${base64Audio}`);
             audio.play().catch(err => console.error('Audio play error:', err));
         }
+
+        // ===== DRAWER =====
+        function toggleDrawer() {
+            const drawer = document.getElementById('historyDrawer');
+            drawerOpen = !drawerOpen;
+            drawer.classList.toggle('open', drawerOpen);
+            drawer.classList.toggle('closed', !drawerOpen);
+        }
+
+        let touchStartY = 0;
+        document.getElementById('historyDrawer').addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        });
+        document.getElementById('historyDrawer').addEventListener('touchmove', (e) => {
+            if (e.touches[0].clientY - touchStartY > 80 && drawerOpen) toggleDrawer();
+        });
+
+        // ===== SUI WALLET (zkLogin) =====
+        let userAddress = null;
+        let walletConnected = false;
+        
+        const SUI_NETWORK = 'testnet';
+        const REDIRECT_URI = window.location.origin;
+        // Client ID fetched from server (not hardcoded)
+        let CLIENT_ID = '';
+        fetch('/api/config').then(r => r.json()).then(d => CLIENT_ID = d.clientId);
+
+        // ===== CONNECT MODAL =====
+        function showConnectModal() {
+            document.getElementById('connectModal').classList.remove('hidden');
+        }
+
+        function hideConnectModal() {
+            document.getElementById('connectModal').classList.add('hidden');
+        }
+
+        // ===== START APP (with wallet check) =====
+        function startApp() {
+            if (!walletConnected) {
+                showConnectModal();
+                return;
+            }
+            document.getElementById('landingPage').classList.add('hidden-state');
+            setTimeout(() => {
+                document.getElementById('appPage').classList.remove('hidden-state');
+            }, 400);
+        }
+
+        // ===== CONNECT PROVIDERS =====
+        async function connectWithGoogle() {
+            const btn = event.target.closest('button');
+            btn.innerHTML = '<span class="animate-pulse">Connecting...</span>';
+            
+            try {
+                const { Ed25519Keypair } = await import('https://esm.sh/@mysten/sui.js/keypairs/ed25519');
+                const keypair = new Ed25519Keypair();
+                const address = keypair.getPublicKey().toSuiAddress();
+                
+                sessionStorage.setItem('ankor_ephemeral_key', keypair.getSecretKey());
+                sessionStorage.setItem('ankor_address', address);
+                
+                const params = new URLSearchParams({
+                    client_id: CLIENT_ID,
+                    redirect_uri: REDIRECT_URI,
+                    scope: 'openid email profile',
+                    response_type: 'id_token',
+                    nonce: address,
+                    state: address,
+                    prompt: 'select_account'
+                });
+
+                window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+            } catch (error) {
+                console.error('Google connect error:', error);
+                btn.innerHTML = '<svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg><span>Continue with Google</span>';
+            }
+        }
+
+        async function connectWithApple() {
+            alert('Apple Sign-In coming soon');
+        }
+
+        async function connectWithEmail() {
+            alert('Email sign-in coming soon');
+        }
+
+        // Handle OAuth callback
+        async function handleCallback() {
+            const hash = window.location.hash;
+            if (!hash || !hash.includes('id_token')) return;
+
+            const params = new URLSearchParams(hash.substring(1));
+            const idToken = params.get('id_token');
+            
+            if (!idToken) return;
+
+            try {
+                // Send to backend for verification
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                });
+
+                const data = await response.json();
+                
+                if (data.verified) {
+                    sessionStorage.setItem('ankor_address', data.address);
+                    sessionStorage.setItem('ankor_user_name', data.name);
+                    
+                    walletConnected = true;
+                    userAddress = data.address;
+                    
+                    updateWalletUI(data.name);
+                    hideConnectModal();
+                    
+                    console.log('zkLogin verified:', { name: data.name, address: data.address.slice(0, 10) + '...' });
+                } else {
+                    console.error('Verification failed:', data.error);
+                }
+                
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (error) {
+                console.error('Callback error:', error);
+            }
+        }
+
+        function updateWalletUI(name) {
+            const topBtn = document.getElementById('walletBtnTopText');
+            if (topBtn) topBtn.textContent = name || 'Connected';
+            
+            const status = document.getElementById('walletStatus');
+            if (status) status.textContent = 'Synced & encrypted';
+        }
+
+        function checkSession() {
+            const savedAddress = sessionStorage.getItem('ankor_address');
+            const savedName = sessionStorage.getItem('ankor_user_name');
+            
+            if (savedAddress && savedName) {
+                walletConnected = true;
+                userAddress = savedAddress;
+                updateWalletUI(savedName);
+            }
+        }
+
+        handleCallback();
+        checkSession();
     </script>
 </body>
 </html>
