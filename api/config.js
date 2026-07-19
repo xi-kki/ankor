@@ -29,8 +29,12 @@ module.exports = (req, res) => {
     // SECURITY: Cache control
     res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
     
+    // SECURITY: Sanitize env values
+    const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+    const network = (process.env.SUI_NETWORK || 'testnet').trim();
+    
     res.json({
-        clientId: process.env.GOOGLE_CLIENT_ID || '',
-        network: process.env.SUI_NETWORK || 'testnet'
+        clientId,
+        network
     });
 };
