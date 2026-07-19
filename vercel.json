@@ -16,6 +16,9 @@
     { "src": "/api/middleware", "dest": "/api/middleware.js" },
     { "src": "/api/security", "dest": "/api/security.js" },
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/app", "dest": "/index.html" },
+    { "src": "/privacy", "dest": "/privacy.html" },
+    { "src": "/terms", "dest": "/terms.html" }
   ]
 }
