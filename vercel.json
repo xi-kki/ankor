@@ -16,6 +16,7 @@
     { "src": "/api/health", "dest": "/api/health.js" },
     { "src": "/api/middleware", "dest": "/api/middleware.js" },
     { "src": "/api/security", "dest": "/api/security.js" },
+    { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
