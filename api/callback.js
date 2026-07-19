@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
     // SECURITY: Validate host header
     const allowedHosts = [
       'ankore.vercel.app',
-      'ankore-4j6y45g1x-xikkilocker-6820s-projects.vercel.app',
+      'ankore-mwnukiy4u-xikkilocker-6820s-projects.vercel.app',
     ];
 
     if (!allowedHosts.includes(host)) {
@@ -86,9 +86,9 @@ module.exports = async (req, res) => {
         return res.redirect('/?error=token_too_long');
       }
 
-      // Success! Redirect back to frontend with the token in hash
-      // SECURITY: Use hash fragment, not query string, to avoid server logging
-      const redirectUrl = `/?id_token=${tokens.id_token}`;
+      // Success! Redirect back to frontend with the token in hash fragment
+      // SECURITY: Use hash fragment to avoid server logging
+      const redirectUrl = `/#id_token=${tokens.id_token}`;
       return res.redirect(redirectUrl);
     }
 
