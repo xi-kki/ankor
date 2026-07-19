@@ -1,9 +1,11 @@
 // Vercel Serverless Function: POST /api/auth/verify
 // Verifies Google JWT and derives Sui address
 // SECURITY: Uses jose library for proper JWT signature verification
+// SECURITY: Includes nonce verification for replay prevention
 
 const jose = require('jose');
 const crypto = require('crypto');
+const { storeNonce, verifyNonce } = require('./middleware');
 
 // Cache Google's public keys (refresh daily)
 let googleKeys = null;
@@ -22,8 +24,7 @@ async function getGooglePublicKeys() {
         keysLastFetched = Date.now();
         return googleKeys;
     } catch (error) {
-        console.error('Failed to fetch Google keys:', error.message);
-        // Return cached keys if available
+        // SECURITY: Don't leak error details
         if (googleKeys) return googleKeys;
         throw error;
     }
@@ -54,7 +55,7 @@ module.exports = async (req, res) => {
     }
     
     try {
-        const { idToken } = req.body;
+        const { idToken, nonce } = req.body;
         
         // INPUT VALIDATION
         if (!idToken || typeof idToken !== 'string') {
@@ -72,10 +73,18 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'Token too long' });
         }
         
+        // SECURITY: Verify nonce (replay prevention)
+        if (nonce) {
+            const nonceValid = await verifyNonce(nonce);
+            if (!nonceValid) {
+                return res.status(401).json({ error: 'Invalid or reused nonce' });
+            }
+        }
+        
         const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
         
         if (!GOOGLE_CLIENT_ID) {
-            console.error('GOOGLE_CLIENT_ID not configured');
+            // SECURITY: Don't leak config details
             return res.status(500).json({ error: 'Server configuration error' });
         }
         
@@ -112,6 +121,14 @@ module.exports = async (req, res) => {
             return res.status(401).json({ error: 'Invalid subject format' });
         }
         
+        // SECURITY: Verify nonce claim in JWT if present
+        if (payload.nonce) {
+            const jwtNonceValid = await verifyNonce(payload.nonce);
+            if (!jwtNonceValid) {
+                return res.status(401).json({ error: 'JWT nonce already used' });
+            }
+        }
+        
         // Derive Sui address from JWT claims
         const suiAddress = deriveSuiAddress(payload.sub, payload.aud, payload.iss);
         
@@ -124,8 +141,6 @@ module.exports = async (req, res) => {
         
     } catch (error) {
         // SECURITY: Don't leak error details in production
-        console.error('Auth verification error:', error.message);
-        
         if (error.code === 'ERR_JWT_EXPIRED') {
             return res.status(401).json({ error: 'Token expired' });
         }

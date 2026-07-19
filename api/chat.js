@@ -64,6 +64,27 @@ function validateMessages(messages) {
     return { valid: true };
 }
 
+// SECURITY: Fetch with timeout
+async function fetchWithTimeout(url, options, timeoutMs = 10000) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+        return response;
+    } catch (error) {
+        clearTimeout(timeout);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout');
+        }
+        throw error;
+    }
+}
+
 export default async function handler(req, res) {
     // SECURITY: Strict CORS
     const allowedOrigins = [
@@ -106,7 +127,8 @@ export default async function handler(req, res) {
         // SECURITY: Add rate limiting header
         res.setHeader('X-RateLimit-Limit', '30');
         
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        // SECURITY: Fetch with timeout (10 seconds)
+        const response = await fetchWithTimeout('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${GROQ_API_KEY}`,
@@ -124,13 +146,13 @@ export default async function handler(req, res) {
                 temperature: 0.7,
                 max_tokens: 150
             })
-        });
+        }, 10000); // 10 second timeout
 
         const data = await response.json();
         
         // SECURITY: Validate response from Groq
         if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            console.error('Invalid Groq response:', data);
+            // SECURITY: Don't log full response
             return res.status(502).json({ error: 'Invalid response from AI' });
         }
         
@@ -143,7 +165,7 @@ export default async function handler(req, res) {
         let ttsAudio = null;
         try {
             if (ELEVENLABS_API_KEY) {
-                const ttsResponse = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
+                const ttsResponse = await fetchWithTimeout('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
                     method: 'POST',
                     headers: {
                         'xi-api-key': ELEVENLABS_API_KEY,
@@ -158,7 +180,7 @@ export default async function handler(req, res) {
                             style: 0.3
                         }
                     })
-                });
+                }, 15000); // 15 second timeout for TTS
 
                 if (ttsResponse.ok) {
                     const audioBuffer = await ttsResponse.arrayBuffer();
@@ -166,8 +188,7 @@ export default async function handler(req, res) {
                 }
             }
         } catch (e) {
-            // Don't log full error to prevent information leakage
-            console.error('TTS request failed');
+            // SECURITY: Don't log full error
         }
 
         return res.status(200).json({
@@ -177,7 +198,9 @@ export default async function handler(req, res) {
 
     } catch (error) {
         // SECURITY: Don't leak error details
-        console.error('Chat request failed');
+        if (error.message === 'Request timeout') {
+            return res.status(504).json({ error: 'AI service timeout' });
+        }
         return res.status(500).json({ error: 'Failed to process request' });
     }
 }

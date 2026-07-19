@@ -31,12 +31,13 @@
   },
   "homepage": "https://ankore.vercel.app",
   "dependencies": {
+    "@vercel/kv": "^3.0.0",
     "express": "^5.2.1",
     "helmet": "^8.0.0",
+    "ioredis": "^5.11.1",
     "jose": "^6.0.11",
     "ws": "^8.21.1"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   }

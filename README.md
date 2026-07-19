@@ -11,6 +11,8 @@ A voice-first AI wellness companion that's always available when you need someon
 - 🔒 **End-to-end encryption** — Your conversations, your data, always
 - 🌊 **Calming UI** — Dark theme with video parallax and smooth animations
 - 📱 **Mobile responsive** — Works on all devices
+- 📴 **Offline support** — Use core features without internet
+- 📲 **PWA ready** — Install as app on your device
 
 ## 🚀 Quick Start
 
@@ -98,6 +100,50 @@ npm start
 └─────────────────┴─────────────────┴─────────────────────┘
 ```
 
+## 📴 Offline Support
+
+Ankore works offline for core features:
+
+### Available Offline
+
+| Feature | Works Offline | Notes |
+|---------|---------------|-------|
+| Breathing Exercises | ✅ Yes | All 4 patterns (Calm, Box, 4-7-8, Quick) |
+| View Past Conversations | ✅ Yes | Stored in IndexedDB |
+| AI Chat | ❌ No | Requires internet |
+| Voice Recording | ❌ No | Requires Deepgram API |
+| Sign In | ❌ No | Requires Google OAuth |
+
+### How It Works
+
+1. **Service Worker** — Caches static assets for offline use
+2. **IndexedDB** — Stores conversations locally
+3. **Offline Fallback** — Friendly offline page when no connection
+4. **Auto-Sync** — Syncs conversations when back online
+
+### PWA Installation
+
+Install Ankore as an app on your device:
+
+**iOS Safari:**
+1. Open Ankore in Safari
+2. Tap Share → Add to Home Screen
+
+**Android Chrome:**
+1. Open Ankore in Chrome
+2. Tap Install app banner
+
+**Desktop:**
+1. Click Install icon in address bar
+2. Follow prompts
+
+### Offline Storage Management
+
+- Conversations stored in IndexedDB (up to 50MB)
+- Settings stored in localStorage
+- Storage usage visible in Settings
+- Clear data option available
+
 ## 🔒 Security
 
 Ankore implements multiple security layers:
@@ -119,7 +165,12 @@ ankore/
 ├── index.html           # Main application
 ├── privacy.html         # Privacy policy
 ├── terms.html           # Terms of service
+├── offline.html         # Offline fallback page
 ├── server.js            # Express server (local dev)
+├── sw.js                # Service Worker for offline
+├── manifest.json        # PWA manifest
+├── offline-storage.js   # IndexedDB storage
+├── offline-breathing.js # Offline breathing exercises
 ├── api/                 # Vercel serverless functions
 │   ├── auth.js          # JWT verification
 │   ├── callback.js      # OAuth callback
