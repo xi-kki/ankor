@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xi-kki/ankor.git"
+    "url": "git+https://github.com/xi-kki/ankore.git"
   },
   "keywords": [
     "wellness",
@@ -27,7 +27,7 @@
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/xi-kki/ankor/issues"
+    "url": "https://github.com/xi-kki/ankore/issues"
   },
   "homepage": "https://ankore.vercel.app",
   "dependencies": {

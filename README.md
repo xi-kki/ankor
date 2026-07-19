@@ -25,8 +25,8 @@ A voice-first AI wellness companion that's always available when you need someon
 
 ```bash
 # Clone the repository
-git clone https://github.com/xi-kki/ankor.git
-cd ankor
+git clone https://github.com/xi-kki/ankore.git
+cd ankore
 
 # Install dependencies
 npm install

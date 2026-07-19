@@ -119,7 +119,7 @@ npm run audit:fix
 ## 🚀 Deployment
 - **Platform:** Vercel
 - **Production URL:** https://ankore.vercel.app
-- **GitHub:** https://github.com/xi-kki/ankor
+- **GitHub:** https://github.com/xi-kki/ankore
 - **Branch:** master
 
 ## 📚 Key Documentation
