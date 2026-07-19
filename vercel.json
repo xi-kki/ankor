@@ -1,6 +1,7 @@
 {
   "version": 2,
   "outputDirectory": ".",
+  "public": "public",
   "builds": [
     {
       "src": "api/**/*.js",
@@ -15,11 +16,6 @@
     { "src": "/api/health", "dest": "/api/health.js" },
     { "src": "/api/middleware", "dest": "/api/middleware.js" },
     { "src": "/api/security", "dest": "/api/security.js" },
-    { "src": "/manifest.json", "headers": { "Content-Type": "application/json" } },
-    { "src": "/sw.js", "headers": { "Service-Worker-Allowed": "/" } },
-    { "src": "/offline.html", "headers": { "Content-Type": "text/html" } },
-    { "src": "/offline-storage.js", "headers": { "Content-Type": "application/javascript" } },
-    { "src": "/offline-breathing.js", "headers": { "Content-Type": "application/javascript" } },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
