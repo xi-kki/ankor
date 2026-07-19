@@ -1,24 +1,18 @@
 {
   "version": 2,
+  "outputDirectory": ".",
   "builds": [
     {
       "src": "api/**/*.js",
       "use": "@vercel/node"
     },
     {
-      "src": "**/*",
+      "src": "index.html",
       "use": "@vercel/static"
     }
   ],
-  "outputDirectory": ".",
   "routes": [
-    { "src": "/api/config", "dest": "/api/config.js" },
-    { "src": "/api/auth/verify", "dest": "/api/auth.js" },
-    { "src": "/api/callback", "dest": "/api/callback.js" },
-    { "src": "/api/chat", "dest": "/api/chat.js" },
-    { "src": "/api/health", "dest": "/api/health.js" },
-    { "src": "/api/middleware", "dest": "/api/middleware.js" },
-    { "src": "/api/security", "dest": "/api/security.js" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
