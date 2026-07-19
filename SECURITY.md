@@ -56,27 +56,30 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 ## Rate Limits
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| All API endpoints | 30 requests | 1 minute |
-| Auth endpoints | 5 attempts | 1 minute |
-| Chat messages | 20 messages | Per request |
-| WebSocket connections | 5 per IP | Concurrent |
+| Endpoint              | Limit       | Window      |
+| --------------------- | ----------- | ----------- |
+| All API endpoints     | 30 requests | 1 minute    |
+| Auth endpoints        | 5 attempts  | 1 minute    |
+| Chat messages         | 20 messages | Per request |
+| WebSocket connections | 5 per IP    | Concurrent  |
 
 ## Input Validation Rules
 
 ### Messages
+
 - Maximum 20 messages per request
 - Maximum 1000 characters per message
 - Only allowed roles: `user`, `assistant`, `system`
 - HTML/template characters stripped
 
 ### Tokens
+
 - Maximum 2000 characters
 - Must have 3 parts separated by dots
 - Must be valid base64url format
 
 ### WebSocket
+
 - Maximum 100KB per message
 - Maximum 5 connections per IP
 - Valid JSON required
@@ -84,68 +87,67 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 ## Known Vulnerabilities
 
 ### Fixed
+
 - ✅ JWT signature verification (was missing)
 - ✅ CORS wildcard (now restricted)
 - ✅ Input validation (was missing)
 - ✅ Rate limiting (was in-memory only)
 
 ### Remaining
+
 - ⚠️ In-memory rate limiting (use Redis in production)
 - ⚠️ No nonce verification (implement for replay protection)
 
 ## Recommended Production Enhancements
 
 ### 1. Redis for Rate Limiting
+
 ```javascript
 // Replace in-memory rate limiting with Redis
 const Redis = require('ioredis');
 const redis = new Redis(process.env.REDIS_URL);
 
 async function checkRateLimit(ip, limit, window) {
-    const key = `ratelimit:${ip}`;
-    const current = await redis.incr(key);
-    if (current === 1) {
-        await redis.expire(key, window);
-    }
-    return current <= limit;
+  const key = `ratelimit:${ip}`;
+  const current = await redis.incr(key);
+  if (current === 1) {
+    await redis.expire(key, window);
+  }
+  return current <= limit;
 }
 ```
 
 ### 2. Nonce Verification
+
 ```javascript
 // Store nonces in Redis
 async function storeNonce(nonce, ttl = 3600) {
-    await redis.setex(`nonce:${nonce}`, ttl, '1');
+  await redis.setex(`nonce:${nonce}`, ttl, '1');
 }
 
 async function verifyNonce(nonce) {
-    const exists = await redis.exists(`nonce:${nonce}`);
-    if (exists) {
-        await redis.del(`nonce:${nonce}`);
-        return true;
-    }
-    return false;
+  const exists = await redis.exists(`nonce:${nonce}`);
+  if (exists) {
+    await redis.del(`nonce:${nonce}`);
+    return true;
+  }
+  return false;
 }
 ```
 
 ### 3. Request Signing
+
 ```javascript
 // For internal API calls
 const crypto = require('crypto');
 
 function signRequest(payload, secret) {
-    return crypto
-        .createHmac('sha256', secret)
-        .update(JSON.stringify(payload))
-        .digest('hex');
+  return crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
 }
 
 function verifySignature(payload, signature, secret) {
-    const expected = signRequest(payload, secret);
-    return crypto.timingSafeEqual(
-        Buffer.from(signature, 'hex'),
-        Buffer.from(expected, 'hex')
-    );
+  const expected = signRequest(payload, secret);
+  return crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'));
 }
 ```
 
@@ -197,9 +199,10 @@ npm update
 ## Contact
 
 For security inquiries or to report vulnerabilities:
+
 - Email: security@ankore.app
 - GitHub: Create a private security advisory
 
 ---
 
-*Last updated: July 18, 2026*
+_Last updated: July 18, 2026_

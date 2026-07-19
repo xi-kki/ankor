@@ -1,11 +1,13 @@
 # Ankore — CLAUDE.md
 
 ## 🎯 Overview
+
 - **One-liner:** Voice-first AI wellness companion with Sui zkLogin — sign in with Google, own your data on-chain
 - **Type:** Web2 + Web3 (Sui blockchain for data ownership)
 - **Status:** 🟢 Production deployed at ankore.vercel.app
 
 ## 🏗️ Tech Stack
+
 - **Language:** JavaScript (Node.js)
 - **Frontend:** Vanilla HTML + Tailwind CSS + Lucide Icons
 - **Backend:** Express.js + WebSocket
@@ -16,6 +18,7 @@
 - **Package Manager:** npm
 
 ## 📁 Structure
+
 ```
 ankore/
 ├── index.html           # Main app (landing + app page)
@@ -41,6 +44,7 @@ ankore/
 ```
 
 ## 🧠 Architecture
+
 - **Data flow:** User → Mic → Deepgram STT → Groq AI → ElevenLabs TTS → Speaker
 - **Auth flow:** Google OAuth → /api/callback → JWT verification → Sui address derived
 - **Key modules:**
@@ -50,6 +54,7 @@ ankore/
   4. `server.js` — Local development server with WebSocket
 
 ## ⚡ Build Order
+
 - Phase 1: Foundation ✅ Complete
 - Phase 2: Core Build ✅ Complete
 - Phase 3: Security ✅ Complete
@@ -57,6 +62,7 @@ ankore/
 - Phase 5: Enhancement Features 🔲 Pending
 
 ## 🔐 Security (NON-NEGOTIABLE)
+
 1. ✅ NEVER commit .env (gitignored)
 2. ✅ Validate ALL user inputs (middleware.js)
 3. ✅ Rate limiting on all endpoints (30 req/min)
@@ -67,6 +73,7 @@ ankore/
 8. ✅ Input sanitization (remove HTML, limit length)
 
 ## ✅ Quality Gates Before Ship
+
 - [x] Secret scan (Gitleaks in CI)
 - [x] Input validation (middleware.js)
 - [x] Rate limiting (middleware.js)
@@ -80,6 +87,7 @@ ankore/
 - [x] Terms of service
 
 ## 🚫 What NOT To Do
+
 - Don't store API keys in code (use .env)
 - Don't skip JWT signature verification (critical)
 - Don't use wildcard CORS (security risk)
@@ -88,6 +96,7 @@ ankore/
 - Don't expose error details in production
 
 ## 📝 Environment Variables
+
 ```env
 # Required
 GOOGLE_CLIENT_ID=your-google-client-id
@@ -102,6 +111,7 @@ PORT=3001
 ```
 
 ## 🔧 Development Commands
+
 ```bash
 # Install dependencies
 npm install
@@ -117,12 +127,14 @@ npm run audit:fix
 ```
 
 ## 🚀 Deployment
+
 - **Platform:** Vercel
 - **Production URL:** https://ankore.vercel.app
 - **GitHub:** https://github.com/xi-kki/ankore
 - **Branch:** master
 
 ## 📚 Key Documentation
+
 - `SECURITY.md` — Security policy and measures
 - `README.md` — Project overview and setup
 - `privacy.html` — Privacy policy page
@@ -130,4 +142,4 @@ npm run audit:fix
 
 ---
 
-*Last updated: July 18, 2026*
+_Last updated: July 18, 2026_

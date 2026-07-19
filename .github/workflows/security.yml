@@ -2,37 +2,37 @@ name: Security Scan
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
 
 jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run Gitleaks (secret scanning)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Run ESLint
         run: npx eslint . --ext .js,.jsx,.ts,.tsx || true
-      
+
       - name: Check for hardcoded secrets
         run: |
           echo "Checking for hardcoded secrets..."
@@ -41,7 +41,7 @@ jobs:
             exit 1
           fi
           echo "✅ No hardcoded secrets found"
-      
+
       - name: Verify .env is gitignored
         run: |
           if git ls-files --error-unmatch .env 2>/dev/null; then
@@ -49,13 +49,13 @@ jobs:
             exit 1
           fi
           echo "✅ .env is properly gitignored"
-      
+
       - name: Check for console.log in production
         run: |
           if grep -r "console.log" --include="*.js" . | grep -v node_modules | grep -v "test" | grep -v ".github"; then
             echo "⚠️ console.log statements found (review for sensitive data)"
           fi
-      
+
       - name: Security headers check
         run: |
           echo "Checking security headers..."
@@ -68,19 +68,19 @@ jobs:
   dependency-check:
     name: Dependency Audit
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Run npm audit
         run: npm audit --audit-level=high
-      
+
       - name: Check for known vulnerabilities
         run: |
           echo "Checking for known vulnerabilities..."
@@ -95,25 +95,25 @@ jobs:
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Check file sizes
         run: |
           echo "Checking for oversized files..."
           find . -name "*.js" -not -path "*/node_modules/*" -size +100k -exec ls -lh {} \;
           find . -name "*.html" -not -path "*/node_modules/*" -size +50k -exec ls -lh {} \;
-      
+
       - name: Verify project structure
         run: |
           echo "Verifying project structure..."

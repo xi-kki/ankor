@@ -17,6 +17,7 @@ A voice-first AI wellness companion that's always available when you need someon
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - npm
 - Google Cloud Console account (for OAuth)
@@ -45,15 +46,15 @@ npm start
 
 ## 🔑 Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GOOGLE_CLIENT_ID` | ✅ | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | ✅ | Google OAuth client secret |
-| `GROQ_API_KEY` | ✅ | Groq API key for AI chat |
-| `DEEPGRAM_API_KEY` | ✅ | Deepgram API key for STT |
-| `ELEVENLABS_API_KEY` | ✅ | ElevenLabs API key for TTS |
-| `SUI_NETWORK` | ❌ | Sui network (default: testnet) |
-| `PORT` | ❌ | Server port (default: 3001) |
+| Variable               | Required | Description                    |
+| ---------------------- | -------- | ------------------------------ |
+| `GOOGLE_CLIENT_ID`     | ✅       | Google OAuth client ID         |
+| `GOOGLE_CLIENT_SECRET` | ✅       | Google OAuth client secret     |
+| `GROQ_API_KEY`         | ✅       | Groq API key for AI chat       |
+| `DEEPGRAM_API_KEY`     | ✅       | Deepgram API key for STT       |
+| `ELEVENLABS_API_KEY`   | ✅       | ElevenLabs API key for TTS     |
+| `SUI_NETWORK`          | ❌       | Sui network (default: testnet) |
+| `PORT`                 | ❌       | Server port (default: 3001)    |
 
 ### Getting API Keys
 
@@ -106,13 +107,13 @@ Ankore works offline for core features:
 
 ### Available Offline
 
-| Feature | Works Offline | Notes |
-|---------|---------------|-------|
-| Breathing Exercises | ✅ Yes | All 4 patterns (Calm, Box, 4-7-8, Quick) |
-| View Past Conversations | ✅ Yes | Stored in IndexedDB |
-| AI Chat | ❌ No | Requires internet |
-| Voice Recording | ❌ No | Requires Deepgram API |
-| Sign In | ❌ No | Requires Google OAuth |
+| Feature                 | Works Offline | Notes                                    |
+| ----------------------- | ------------- | ---------------------------------------- |
+| Breathing Exercises     | ✅ Yes        | All 4 patterns (Calm, Box, 4-7-8, Quick) |
+| View Past Conversations | ✅ Yes        | Stored in IndexedDB                      |
+| AI Chat                 | ❌ No         | Requires internet                        |
+| Voice Recording         | ❌ No         | Requires Deepgram API                    |
+| Sign In                 | ❌ No         | Requires Google OAuth                    |
 
 ### How It Works
 
@@ -126,14 +127,17 @@ Ankore works offline for core features:
 Install Ankore as an app on your device:
 
 **iOS Safari:**
+
 1. Open Ankore in Safari
 2. Tap Share → Add to Home Screen
 
 **Android Chrome:**
+
 1. Open Ankore in Chrome
 2. Tap Install app banner
 
 **Desktop:**
+
 1. Click Install icon in address bar
 2. Follow prompts
 
