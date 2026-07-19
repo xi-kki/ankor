@@ -1,15 +1,25 @@
 {
   "version": 2,
   "outputDirectory": ".",
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/api/config", "dest": "/api/config.js" },
+    { "src": "/api/auth/verify", "dest": "/api/auth.js" },
+    { "src": "/api/callback", "dest": "/api/callback.js" },
+    { "src": "/api/chat", "dest": "/api/chat.js" },
+    { "src": "/api/health", "dest": "/api/health.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Origin", "value": "https://ankore.vercel.app" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
       ]
