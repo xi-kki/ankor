@@ -315,6 +315,10 @@
                     <i data-lucide="wind" class="w-4 h-4"></i>
                     <span>Breathe</span>
                 </button>
+                <button onclick="startBreathingExercise()" class="glass flex items-center gap-2 hover:bg-white/10 text-white/50 hover:text-white/80 text-sm px-5 py-3 rounded-full transition-all duration-200">
+                    <i data-lucide="circle" class="w-4 h-4"></i>
+                    <span>Guided Breathe</span>
+                </button>
             </div>
         </div>
 
@@ -596,6 +600,71 @@
         // ===== VOICE PROCESSING =====
         async function processVoice(audioBlob) {
             document.getElementById('statusText').textContent = 'Processing...';
+            document.getElementById('statusText').style.color = 'rgba(124,106,239,0.8)';
+            
+            // Show processing animation
+            const waveform = document.getElementById('waveform');
+            waveform.style.opacity = '1';
+            const bars = waveform.querySelectorAll('.waveform-bar');
+            
+            // Animate bars while processing
+            let processingAnimation;
+            const animateProcessing = () => {
+                bars.forEach((bar, i) => {
+                    const height = Math.random() * 20 + 10;
+                    bar.style.height = `${height}px`;
+                    bar.classList.toggle('active', Math.random() > 0.5);
+                });
+                processingAnimation = requestAnimationFrame(animateProcessing);
+            };
+            animateProcessing();
+            
+            try {
+                // Convert blob to base64
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result.split(',')[1];
+                    
+                    try {
+                        // Send to chat API
+                        const response = await fetch('/api/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                messages: [
+                                    ...conversationHistory,
+                                    { role: 'user', content: 'Voice message received' }
+                                ]
+                            })
+                        });
+                        
+                        if (!response.ok) throw new Error('Chat failed');
+                        
+                        const data = await response.json();
+                        conversationHistory.push({ role: 'assistant', content: data.text });
+                        showAIResponse(data.text);
+                        if (data.audio) playAudio(data.audio);
+                    } catch (err) {
+                        showAIResponse("I'm here. Let's take a breath together.");
+                    } finally {
+                        cancelAnimationFrame(processingAnimation);
+                        waveform.style.opacity = '0';
+                        bars.forEach(bar => {
+                            bar.style.height = '8px';
+                            bar.classList.remove('active');
+                        });
+                        document.getElementById('statusText').textContent = 'Tap to continue';
+                        document.getElementById('statusText').style.color = '';
+                    }
+                };
+                reader.readAsDataURL(audioBlob);
+            } catch (err) {
+                cancelAnimationFrame(processingAnimation);
+                document.getElementById('statusText').textContent = 'Tap to continue';
+                document.getElementById('statusText').style.color = '';
+            }
         }
 
         // ===== QUICK ACTIONS =====
@@ -612,6 +681,7 @@
                 });
                 const data = await response.json();
                 conversationHistory.push({ role: 'assistant', content: data.text });
+                saveConversations();
                 showAIResponse(data.text);
                 if (data.audio) playAudio(data.audio);
             } catch (err) {
@@ -729,7 +799,41 @@
         }
 
         async function connectWithApple() {
-            alert('Apple Sign-In coming soon');
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="animate-pulse">Connecting...</span>';
+            btn.disabled = true;
+            
+            try {
+                // Apple Sign-In requires Apple Developer account
+                // For now, show a message that it's coming soon
+                // In production, you would use Apple JS SDK
+                
+                // Check if Apple JS SDK is loaded
+                if (typeof AppleID !== 'undefined') {
+                    // Initialize Apple Sign-In
+                    AppleID.auth.init({
+                        clientId: 'YOUR_APPLE_CLIENT_ID',
+                        scope: 'name email',
+                        redirectURI: window.location.origin + '/api/callback/apple',
+                        state: 'webkit',
+                        usePopup: true
+                    });
+                    
+                    const response = await AppleID.auth.signIn();
+                    // Handle Apple response
+                    console.log('Apple sign-in:', response);
+                } else {
+                    // Show coming soon message
+                    showAIResponse('Apple Sign-In coming soon! Use Google to sign in for now.');
+                }
+            } catch (error) {
+                console.error('Apple connect error:', error);
+                showAIResponse('Apple Sign-In coming soon. Use Google to sign in.');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
         }
 
         async function connectWithEmail() {
@@ -794,10 +898,209 @@
                 userAddress = savedAddress;
                 updateWalletUI(savedName);
             }
+            
+            // Load saved conversations
+            loadConversations();
+        }
+
+        // ===== CONVERSATION PERSISTENCE =====
+        function saveConversations() {
+            try {
+                const data = {
+                    conversations: conversationHistory,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('ankor_conversations', JSON.stringify(data));
+            } catch (e) {
+                console.error('Failed to save conversations:', e);
+            }
+        }
+
+        function loadConversations() {
+            try {
+                const saved = localStorage.getItem('ankor_conversations');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    // Only load if less than 24 hours old
+                    if (Date.now() - data.timestamp < 86400000) {
+                        conversationHistory = data.conversations || [];
+                        updateConversationDrawer();
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load conversations:', e);
+            }
+        }
+
+        function updateConversationDrawer() {
+            const list = document.getElementById('conversationList');
+            if (!list) return;
+            
+            if (conversationHistory.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
+                            <i data-lucide="message-square" class="w-6 h-6 text-white/15"></i>
+                        </div>
+                        <p class="text-white/25 text-sm mb-1">No conversations yet</p>
+                        <p class="text-white/15 text-xs">Your chats will appear here, encrypted on-chain.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            // Show last 10 messages
+            const recentMessages = conversationHistory.slice(-10);
+            list.innerHTML = recentMessages.map(msg => `
+                <div class="mb-3 ${msg.role === 'user' ? 'text-right' : 'text-left'}">
+                    <div class="inline-block max-w-[80%] px-4 py-2 rounded-2xl ${msg.role === 'user' ? 'bg-anchor-accent/20 text-white/80' : 'bg-white/5 text-white/60'}">
+                        <p class="text-sm">${msg.content.slice(0, 100)}${msg.content.length > 100 ? '...' : ''}</p>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Scroll to bottom
+            list.scrollTop = list.scrollHeight;
         }
 
         handleCallback();
         checkSession();
+
+        // ===== ERROR BOUNDARY =====
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('Global error:', { msg, url, line, col, error });
+            
+            // Show user-friendly error
+            const statusText = document.getElementById('statusText');
+            if (statusText) {
+                statusText.textContent = 'Something went wrong. Please refresh.';
+                statusText.style.color = 'rgba(239, 106, 106, 0.8)';
+            }
+            
+            // Reset UI state
+            if (isListening) {
+                stopListening();
+            }
+            
+            return true; // Prevent default error handling
+        };
+
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            
+            const statusText = document.getElementById('statusText');
+            if (statusText) {
+                statusText.textContent = 'Connection issue. Please try again.';
+                statusText.style.color = 'rgba(239, 106, 106, 0.8)';
+            }
+            
+            if (isListening) {
+                stopListening();
+            }
+        });
+
+        // ===== BREATHING EXERCISE =====
+        let breathingActive = false;
+        let breathingInterval = null;
+
+        function startBreathingExercise() {
+            if (breathingActive) {
+                stopBreathingExercise();
+                return;
+            }
+            
+            breathingActive = true;
+            const statusText = document.getElementById('statusText');
+            const micBtn = document.getElementById('micBtn');
+            const pulseContainer = document.getElementById('pulseContainer');
+            
+            // Create breathing circle
+            let breathingCircle = document.getElementById('breathingCircle');
+            if (!breathingCircle) {
+                breathingCircle = document.createElement('div');
+                breathingCircle.id = 'breathingCircle';
+                breathingCircle.className = 'absolute inset-0 flex items-center justify-center pointer-events-none';
+                breathingCircle.innerHTML = `
+                    <div class="w-32 h-32 rounded-full border-2 border-anchor-accent/50 flex items-center justify-center">
+                        <div class="w-24 h-24 rounded-full border border-anchor-accent/30 flex items-center justify-center">
+                            <div class="w-16 h-16 rounded-full bg-anchor-accent/20"></div>
+                        </div>
+                    </div>
+                `;
+                micBtn.parentElement.appendChild(breathingCircle);
+            }
+            breathingCircle.style.opacity = '1';
+            
+            // Breathing phases
+            const phases = [
+                { text: 'Breathe in...', duration: 4000, scale: 1.5 },
+                { text: 'Hold...', duration: 4000, scale: 1.5 },
+                { text: 'Breathe out...', duration: 6000, scale: 1 },
+                { text: 'Hold...', duration: 2000, scale: 1 }
+            ];
+            
+            let phaseIndex = 0;
+            
+            const runPhase = () => {
+                if (!breathingActive) return;
+                
+                const phase = phases[phaseIndex];
+                statusText.textContent = phase.text;
+                statusText.style.color = 'rgba(124,106,239,0.8)';
+                
+                // Animate circle
+                const circle = breathingCircle.querySelector('.w-32');
+                if (circle) {
+                    circle.style.transition = `transform ${phase.duration}ms ease-in-out`;
+                    circle.style.transform = `scale(${phase.scale})`;
+                }
+                
+                phaseIndex = (phaseIndex + 1) % phases.length;
+                breathingInterval = setTimeout(runPhase, phase.duration);
+            };
+            
+            runPhase();
+            showAIResponse('Follow the circle. Breathe naturally.');
+        }
+
+        function stopBreathingExercise() {
+            breathingActive = false;
+            if (breathingInterval) {
+                clearTimeout(breathingInterval);
+                breathingInterval = null;
+            }
+            
+            const breathingCircle = document.getElementById('breathingCircle');
+            if (breathingCircle) {
+                breathingCircle.style.opacity = '0';
+            }
+            
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = 'Tap to continue';
+            statusText.style.color = '';
+        }
+
+        // ===== ONLINE/OFFLINE DETECTION =====
+        window.addEventListener('online', () => {
+            const statusText = document.getElementById('statusText');
+            if (statusText) {
+                statusText.textContent = 'Back online';
+                statusText.style.color = 'rgba(106, 239, 136, 0.8)';
+                setTimeout(() => {
+                    statusText.textContent = 'Tap to continue';
+                    statusText.style.color = '';
+                }, 2000);
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            const statusText = document.getElementById('statusText');
+            if (statusText) {
+                statusText.textContent = 'You are offline';
+                statusText.style.color = 'rgba(239, 186, 106, 0.8)';
+            }
+        });
     </script>
 </body>
 </html>
