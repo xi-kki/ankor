@@ -4,8 +4,13 @@
     {
       "src": "api/**/*.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "**/*",
+      "use": "@vercel/static"
     }
   ],
+  "outputDirectory": ".",
   "routes": [
     { "src": "/api/config", "dest": "/api/config.js" },
     { "src": "/api/auth/verify", "dest": "/api/auth.js" },
