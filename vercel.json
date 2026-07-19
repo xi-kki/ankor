@@ -16,9 +16,20 @@
     { "src": "/api/middleware", "dest": "/api/middleware.js" },
     { "src": "/api/security", "dest": "/api/security.js" },
     { "handle": "filesystem" },
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/app", "dest": "/index.html" },
-    { "src": "/privacy", "dest": "/privacy.html" },
-    { "src": "/terms", "dest": "/terms.html" }
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    }
   ]
 }
